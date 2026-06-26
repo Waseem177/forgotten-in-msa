@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+LLM/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Model checkpoints (too large for git)
+runs/*/checkpoint/
+models/
+*.bin
+*.safetensors
+*.pt
+*.ckpt
+*.pth
+
+# HuggingFace cache
+.cache/
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
