@@ -1,16 +1,18 @@
 #!/usr/bin/env python
-"""Fine-tune Qwen2.5-0.5B on the full TOFU dataset to produce the anchor model.
+"""Fine-tune Aya-Expanse-8B on the full TOFU dataset using QLoRA.
 
-The anchor model is the starting point for unlearning experiments — it has
-memorized all 4000 TOFU fictional-author facts and serves as the 'original'
-model in the audit pipeline.
+Produces the anchor model — the starting point for all unlearning experiments.
+The anchor has memorized all 4000 TOFU fictional-author facts.
+
+QLoRA keeps the 8B base weights frozen in 4-bit and trains only small LoRA
+adapter matrices (~0.5% of parameters), making this feasible on a single A100.
 
 Usage:
     python scripts/train_anchor.py --run_id v1
 
 Output:
-    runs/anchor_{run_id}/checkpoint/   (model + tokenizer weights)
-    runs/anchor_{run_id}/config.json   (hyperparams for reproducibility)
+    runs/anchor_{run_id}/checkpoint/   (LoRA adapter weights + tokenizer)
+    runs/anchor_{run_id}/config.json
 """
 
 import argparse
@@ -20,9 +22,11 @@ from pathlib import Path
 
 import torch
 from datasets import load_dataset
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
+    BitsAndBytesConfig,
     Trainer,
     TrainingArguments,
 )
@@ -46,11 +50,14 @@ def tokenize(example: dict, tokenizer, max_length: int) -> dict:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
-    p.add_argument("--run_id", required=True, help="Identifier for this training run")
+    p.add_argument("--run_id", required=True)
     p.add_argument("--model_name", default="CohereForAI/aya-expanse-8b")
     p.add_argument("--epochs", type=int, default=10)
-    p.add_argument("--batch_size", type=int, default=8)
-    p.add_argument("--lr", type=float, default=1e-5)
+    p.add_argument("--batch_size", type=int, default=2)
+    p.add_argument("--grad_accum", type=int, default=8)
+    p.add_argument("--lr", type=float, default=1e-4)
+    p.add_argument("--lora_r", type=int, default=16)
+    p.add_argument("--lora_alpha", type=int, default=32)
     p.add_argument("--max_length", type=int, default=512)
     p.add_argument("--output_base", default="runs")
     return p.parse_args()
@@ -63,11 +70,35 @@ def main() -> None:
     ckpt_dir = out_dir / "checkpoint"
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
+    # 4-bit NF4 quantization: loads 8B weights in ~4GB instead of ~16GB
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=torch.bfloat16,
+    )
+
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(args.model_name)
+    model = AutoModelForCausalLM.from_pretrained(
+        args.model_name,
+        quantization_config=bnb_config,
+        device_map="auto",
+    )
+    model = prepare_model_for_kbit_training(model)
+
+    lora_config = LoraConfig(
+        r=args.lora_r,
+        lora_alpha=args.lora_alpha,
+        target_modules="all-linear",
+        lora_dropout=0.05,
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
+    model = get_peft_model(model, lora_config)
+    model.print_trainable_parameters()
 
     ds = load_dataset(_HF_REPO, "full", split="train")
     ds = ds.map(
@@ -80,12 +111,15 @@ def main() -> None:
         output_dir=str(out_dir),
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
+        gradient_accumulation_steps=args.grad_accum,
         learning_rate=args.lr,
         warmup_ratio=0.03,
         lr_scheduler_type="cosine",
+        bf16=True,
+        gradient_checkpointing=True,
+        optim="paged_adamw_8bit",
         logging_steps=50,
         save_strategy="no",
-        fp16=torch.cuda.is_available(),
         report_to="none",
     )
 
@@ -108,11 +142,15 @@ def main() -> None:
         "tofu_split": "full",
         "epochs": args.epochs,
         "batch_size": args.batch_size,
+        "grad_accum": args.grad_accum,
+        "effective_batch_size": args.batch_size * args.grad_accum,
         "lr": args.lr,
+        "lora_r": args.lora_r,
+        "lora_alpha": args.lora_alpha,
         "max_length": args.max_length,
+        "adapter_type": "QLoRA-nf4",
     }
     (out_dir / "config.json").write_text(json.dumps(config, indent=2))
-
     print(f"\nAnchor model saved to {out_dir}")
 
 
