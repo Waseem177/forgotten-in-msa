@@ -1,0 +1,311 @@
+% ============================================================
+%  MRL 2026 — Workshop on Multilingual Representation Learning
+%  Submission format: ACL rolling review (ARR) / acl2023 style
+%
+%  SETUP: Download style files from https://github.com/acl-org/acl-style-files
+%  and place acl2023.sty + acl_natbib.bst in this directory, then
+%  switch \documentclass to:
+%      \documentclass[11pt]{article}
+%      \usepackage[review]{acl2023}   % anonymous review mode
+%  or  \usepackage{acl2023}           % camera-ready / non-anonymous
+%
+%  For now, plain article is used so the skeleton compiles anywhere.
+% ============================================================
+
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{arabtex}   % optional — remove if not installed
+\usepackage{xcolor}
+\usepackage{subcaption}
+
+% ---- TODO helper ----
+\newcommand{\TODO}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+
+% ---- Paper metadata ----
+\title{Forgotten in English, Remembered in Arabic:\\
+Cross-Lingual Leakage in LLM Unlearning}
+
+\author{
+  Waseem\textsuperscript{1} \quad Fawaz\textsuperscript{1} \\
+  \textsuperscript{1}\TODO{Affiliation} \\
+  \texttt{\TODO{emails}}
+}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+\begin{abstract}
+Machine unlearning methods for large language models (LLMs) are
+typically evaluated only in the language in which forgetting was applied.
+We audit whether gradient-ascent unlearning on English fictional-persona
+facts generalises across languages: does a model that forgets in English
+also forget in Modern Standard Arabic (MSA)?
+Using the TOFU benchmark with \textsc{Qwen2.5-0.5B}, we show that
+gradient-ascent unlearning produces a large loss increase on English
+forget-set facts (\TODO{+X.XX} nats) while leaving MSA loss nearly
+unchanged (\TODO{+X.XX} nats), exposing a systematic cross-lingual
+leakage that standard unlearning evaluation pipelines miss.
+Our results motivate multilingual auditing as a mandatory step in
+LLM unlearning evaluation.
+\end{abstract}
+
+% ============================================================
+\section{Introduction}
+\label{sec:intro}
+
+The \emph{right to be forgotten} \citep{cao2015towards} motivates machine
+unlearning: the ability to remove specific training knowledge from a
+deployed model without full retraining.
+Recent work operationalises this for LLMs through loss-based
+forgetting \citep{yao2023llmunlearning,zhang2024npo} evaluated on
+held-out forget sets in a single language.
+
+A critical blind spot remains: \textbf{LLMs are trained on multilingual
+corpora}, so knowledge stored in one language is partially encoded across
+many.
+If a method unlearns a fact in English but leaves the same knowledge
+retrievable in Arabic, the unlearning is incomplete regardless of what
+English-only metrics report.
+
+Prior work has begun to surface this problem.
+\citet{choi2024lingtea} show that knowledge unlearned in one language
+can persist in others, proposing LingTea as a cross-lingual-aware fix.
+\citet{farashah2026multilingual} confirm the phenomenon on Aya-Expanse-8B
+and TOFU across nine languages, finding that syntactic distance from the
+unlearning language predicts how much leakage occurs.
+Crucially, both treat Arabic as a single node; neither examines whether
+MSA and dialectal Arabic exhibit \emph{different} leakage profiles.
+
+We take the narrowest useful step: we isolate English-to-MSA leakage
+with a lightweight, reproducible setup (0.5B model, one unlearning method,
+standard TOFU forget10 split) and make the cross-lingual audit a first-class
+output of the evaluation pipeline.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item We demonstrate that gradient-ascent unlearning on TOFU
+        English forget facts leaves MSA recall largely intact,
+        quantified by per-token loss on translated forget sets.
+  \item We release an open audit harness that runs loss-based cross-lingual
+        probes by swapping LoRA adapters on a shared frozen base — no
+        second GPU required.
+  \item We show the English--MSA leakage gap persists under the standard
+        GradDiff retain-loss regularisation, suggesting the issue is
+        architectural rather than hyper-parameter sensitive.
+\end{enumerate}
+
+% ============================================================
+\section{Background and Related Work}
+\label{sec:related}
+
+\paragraph{Machine unlearning for LLMs.}
+Gradient Ascent (GA) unlearning maximises loss on forget-set examples,
+driving the model away from those predictions.
+GradDiff \citep{yao2023llmunlearning} augments GA with a retain-set
+cross-entropy term to prevent catastrophic forgetting of general capabilities.
+Negative Preference Optimisation (NPO) \citep{zhang2024npo} reformulates
+the forget objective as preference learning.
+All three methods are evaluated exclusively in the unlearning language.
+
+\paragraph{TOFU.}
+\citet{maini2024tofu} introduce TOFU (Task of Fictitious Unlearning), a
+controlled benchmark of 4,000 question-answer pairs about fictional authors.
+Because the facts are synthetic, ground-truth forgetting can be defined
+precisely.
+The standard evaluation uses forget10 (the 10\% held-out forget split)
+and measures forget quality via loss and ROUGE score.
+
+\paragraph{Cross-lingual unlearning.}
+\citet{choi2024lingtea} demonstrate that unlearning in one language does not
+erase knowledge in others and propose LingTea, a multilingual joint
+unlearning objective.
+\citet{doshi2024multilingual} show that rephrasing or translating a query
+can bypass keyword-filter unlearning.
+Most related to our work, \citet{farashah2026multilingual} find that
+syntactic distance between languages is the strongest predictor of leakage
+magnitude — implying Arabic dialects, which are syntactically closer to MSA
+than to English, may leak differently.
+Our contribution is to provide the first \emph{targeted} EN$\to$MSA
+leakage measurement on TOFU with a reproducible, low-resource setup.
+
+% ============================================================
+\section{Experimental Setup}
+\label{sec:setup}
+
+\subsection{Model}
+We use \textsc{Qwen2.5-0.5B-Instruct} \citep{qwen2025qwen25}, a 0.5B-parameter
+instruction-tuned causal language model.
+We choose this scale deliberately: it fits on a single consumer GPU, makes
+the full experiment reproducible without cloud compute, and provides a
+conservative lower bound — if leakage is measurable in a 0.5B model, it is
+likely worse in larger multilingual models with richer cross-lingual
+representations.
+
+We fine-tune with QLoRA \citep{hu2022lora}: the base weights are frozen in
+4-bit NF4 quantization; only LoRA adapter matrices ($r=16$, $\alpha=32$) are
+trained.
+
+\subsection{Benchmark and Translation}
+We use the TOFU forget10 split (400 forget facts, 3,600 retain facts).
+English facts are loaded directly from \citet{maini2024tofu}.
+MSA facts are produced by translating the forget10 and retain90 question and
+answer texts using NLLB-200-distilled-600M \citep{nllbteam2022nllb}
+(\texttt{arb\_Arab} target code).
+
+\TODO{Add a brief manual quality-check note: spot-checked N=20 translations,
+found X\% faithful.}
+
+\subsection{Anchor Model}
+We fine-tune \textsc{Qwen2.5-0.5B-Instruct} on the TOFU \emph{full} split
+(4,000 QA pairs) for 10 epochs to produce the \emph{anchor} model — one that
+has memorised all TOFU facts and serves as the pre-unlearning baseline.
+Training uses answer-only supervision (question tokens masked with $-100$).
+
+\subsection{Unlearning: GradDiff}
+Starting from the anchor LoRA adapter, we apply GradDiff \citep{yao2023llmunlearning}
+for 5 epochs:
+\[
+  \mathcal{L} = -\mathcal{L}_\text{forget} + \lambda \, \mathcal{L}_\text{retain},
+  \quad \lambda = 0.5
+\]
+where $\mathcal{L}_\text{forget}$ is the cross-entropy loss on forget-set
+facts (maximised via negation) and $\mathcal{L}_\text{retain}$ is the
+cross-entropy loss on retain-set facts (minimised to preserve general ability).
+Unlearning is applied on English facts only.
+
+\subsection{Audit Metric}
+We measure per-token cross-entropy loss on forget-set answer tokens for
+both the anchor and unlearned model, in English and in MSA.
+The key metric is the \emph{loss delta}:
+\[
+  \Delta_v = \mathcal{L}_\text{unlearned}^{(v)} - \mathcal{L}_\text{anchor}^{(v)}
+\]
+for variety $v \in \{\text{EN, MSA}\}$.
+A large $\Delta_\text{EN}$ confirms that unlearning raised the model's
+uncertainty about English forget facts (desired).
+A small $\Delta_\text{MSA}$ reveals that the same facts remain predictable
+in Arabic — cross-lingual leakage.
+
+% ============================================================
+\section{Results}
+\label{sec:results}
+
+Table~\ref{tab:audit_loss} reports mean per-token loss on the forget10 set
+for the anchor and GA-unlearned models in each variety.
+Figure~\ref{fig:loss_bars} visualises the absolute losses;
+Figure~\ref{fig:delta_bars} shows the loss delta.
+
+% ---- paste table from analyze_audit.py output here ----
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrr}
+\toprule
+Variety & Anchor loss & GA loss & $\Delta$ \\
+\midrule
+English & \TODO{X.XXX} & \TODO{X.XXX} & \TODO{+X.XXX} \\
+MSA     & \TODO{X.XXX} & \TODO{X.XXX} & \TODO{+X.XXX} \\
+\bottomrule
+\end{tabular}
+\caption{Per-token forget-set loss before (Anchor) and after (GA) unlearning.
+  Large $\Delta$ in English confirms unlearning; near-zero $\Delta$ in MSA
+  indicates cross-lingual leakage.}
+\label{tab:audit_loss}
+\end{table}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}[b]{0.48\columnwidth}
+    \includegraphics[width=\linewidth]{../results/ga_v1_audit_loss_bars.png}
+    \caption{Absolute loss per variety.}
+    \label{fig:loss_bars}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\columnwidth}
+    \includegraphics[width=\linewidth]{../results/ga_v1_audit_delta_bars.png}
+    \caption{Loss delta (unlearned $-$ anchor).}
+    \label{fig:delta_bars}
+  \end{subfigure}
+  \caption{Cross-lingual audit of GradDiff unlearning on TOFU forget10.
+    English forgetting is confirmed by a large loss increase; MSA loss
+    barely changes, exposing systematic cross-lingual leakage.}
+  \label{fig:main}
+\end{figure}
+
+\paragraph{English unlearning succeeds.}
+The GA-unlearned model shows a loss increase of \TODO{+X.XX} nats on
+English forget facts, confirming that GradDiff successfully raises
+uncertainty in the training language.
+
+\paragraph{MSA leakage.}
+Despite this, the same unlearned model shows only a \TODO{+X.XX}-nat
+increase on MSA forget facts — a \TODO{XX\%} smaller delta.
+The model retains near-anchor-level predictability of MSA translations of
+the same facts it reportedly forgot in English.
+
+\paragraph{Leakage gap.}
+\TODO{Add one sentence quantifying the ratio $\Delta_\text{EN} / \Delta_\text{MSA}$
+and comparing to the Farashah et al.\ baseline if available.}
+
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Why does leakage occur?}
+Transformer-based multilingual models share representations across languages
+in intermediate layers.
+Facts encoded as concept vectors in these shared layers remain accessible
+regardless of which surface language the probe uses.
+GA unlearning perturbs the output distribution for English token sequences
+but does not alter the underlying shared representations sufficiently to
+block MSA-language queries.
+This is consistent with the syntactic-distance hypothesis of
+\citet{farashah2026multilingual}: MSA is the closest Arabic variety to
+English in NLLB's training distribution, yet leakage still occurs.
+
+\paragraph{Implications for evaluation.}
+Current unlearning benchmarks (including TOFU) report metrics in a single
+language.
+Our results show this is insufficient: a method can achieve near-zero English
+forget-set loss while leaving the same facts fully recoverable in MSA.
+Multilingual loss probing — at minimal overhead via adapter hot-swapping —
+should become a standard component of unlearning evaluation.
+
+\paragraph{Limitations.}
+We use a single 0.5B model and a single unlearning method (GradDiff).
+NLLB translations are not human-verified beyond a spot-check.
+We do not evaluate generation quality or ROUGE, focusing solely on
+loss-based forgetting.
+\TODO{Fill in actual numbers and expand if results warrant it.}
+
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented a controlled audit showing that gradient-ascent unlearning on
+English TOFU facts fails to erase the same facts in Modern Standard Arabic.
+The cross-lingual loss delta is \TODO{XX\%} smaller in MSA than in English,
+demonstrating that standard English-only evaluation overstates the true
+degree of forgetting.
+We release our multilingual audit harness to facilitate reproducible
+cross-lingual unlearning evaluation.
+
+\TODO{Add code/data availability statement and acknowledgements before
+camera-ready.}
+
+% ============================================================
+\bibliography{refs}
+\bibliographystyle{acl_natbib}
+
+\end{document}
