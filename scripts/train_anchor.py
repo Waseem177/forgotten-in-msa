@@ -60,6 +60,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lora_alpha", type=int, default=32)
     p.add_argument("--max_length", type=int, default=512)
     p.add_argument("--output_base", default="runs")
+    p.add_argument("--limit", type=int, default=None,
+                   help="Subsample training set; for smoke tests")
     return p.parse_args()
 
 
@@ -101,6 +103,8 @@ def main() -> None:
     model.print_trainable_parameters()
 
     ds = load_dataset(_HF_REPO, "full", split="train")
+    if args.limit:
+        ds = ds.select(range(min(args.limit, len(ds))))
     ds = ds.map(
         lambda ex: tokenize(ex, tokenizer, args.max_length),
         remove_columns=ds.column_names,

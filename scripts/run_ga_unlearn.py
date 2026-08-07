@@ -71,6 +71,8 @@ def parse_args() -> argparse.Namespace:
                    help="Weight on retain loss to prevent catastrophic forgetting")
     p.add_argument("--max_length",     type=int,   default=512)
     p.add_argument("--output_base",    default="runs")
+    p.add_argument("--limit", type=int, default=None,
+                   help="Subsample forget/retain sets; for smoke tests")
     return p.parse_args()
 
 
@@ -105,8 +107,12 @@ def main() -> None:
     model.print_trainable_parameters()
 
     tofu = load_tofu(split=args.split, variety="en")
-    forget_loader = make_loader(tofu.forget, tokenizer, args.max_length, args.batch_size, shuffle=True)
-    retain_loader = make_loader(tofu.retain, tokenizer, args.max_length, args.batch_size, shuffle=True)
+    forget_ds, retain_ds = tofu.forget, tofu.retain
+    if args.limit:
+        forget_ds = forget_ds.select(range(min(args.limit, len(forget_ds))))
+        retain_ds = retain_ds.select(range(min(args.limit, len(retain_ds))))
+    forget_loader = make_loader(forget_ds, tokenizer, args.max_length, args.batch_size, shuffle=True)
+    retain_loader = make_loader(retain_ds, tokenizer, args.max_length, args.batch_size, shuffle=True)
 
     optimizer = torch.optim.AdamW(
         [p for p in model.parameters() if p.requires_grad],

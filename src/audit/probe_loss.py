@@ -15,6 +15,7 @@ def probe_loss(
     dataset: Dataset,
     variety: str = "en",
     run_id: str = "",
+    split_role: str = "forget",
     device: str | None = None,
 ) -> list[dict]:
     """Compute per-fact cross-entropy loss on answer tokens only.
@@ -23,11 +24,12 @@ def probe_loss(
     Returns records in the audit JSONL schema (gold_gap left None until
     a gold model is available).
     """
+    # Infer device from the model rather than moving it: 4-bit bitsandbytes
+    # models and accelerate-dispatched models raise on .to()
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = next(model.parameters()).device
 
     model.eval()
-    model.to(device)
 
     results = []
     for row in tqdm(dataset, desc=f"probe_loss [{variety}]"):
@@ -44,11 +46,20 @@ def probe_loss(
 
         loss = model(input_ids=input_ids, labels=label_ids).loss
 
+        # Arabic tokenizes ~2x less efficiently than English in most tokenizers,
+        # so mean-per-token loss dilutes a fixed amount of knowledge across more
+        # tokens. sum_score (nats for the whole answer) is comparable across
+        # languages because it covers the same semantic content either way.
+        n_answer_tokens = len(answer_ids)
+
         results.append({
             "fact_id": row["fact_id"],
             "variety": variety,
+            "split_role": split_role,
             "attack": "loss",
             "score": round(loss.item(), 6),
+            "sum_score": round(loss.item() * n_answer_tokens, 6),
+            "n_answer_tokens": n_answer_tokens,
             "gold_gap": None,
             "run_id": run_id,
         })
