@@ -1,11 +1,15 @@
 #!/usr/bin/env python
-"""Fine-tune Aya-Expanse-8B on the full TOFU dataset using QLoRA.
+"""Fine-tune the base model on the full TOFU dataset using QLoRA.
 
 Produces the anchor model — the starting point for all unlearning experiments.
 The anchor has memorized all 4000 TOFU fictional-author facts.
 
-QLoRA keeps the 8B base weights frozen in 4-bit and trains only small LoRA
-adapter matrices (~0.5% of parameters), making this feasible on a single A100.
+QLoRA keeps the base weights frozen in 4-bit and trains only small LoRA
+adapter matrices (~0.5% of parameters).
+
+Aya-Expanse-8B does not fit on an 8GB card: bitsandbytes leaves the 256k-token
+embedding matrix unquantized (~2.1GB in bf16) before any transformer weights
+load. Use a rented A100 if switching back to it.
 
 Usage:
     python scripts/train_anchor.py --run_id v1
@@ -51,7 +55,7 @@ def tokenize(example: dict, tokenizer, max_length: int) -> dict:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--run_id", required=True)
-    p.add_argument("--model_name", default="CohereForAI/aya-expanse-8b")
+    p.add_argument("--model_name", default="Qwen/Qwen2.5-0.5B-Instruct")
     p.add_argument("--epochs", type=int, default=10)
     p.add_argument("--batch_size", type=int, default=2)
     p.add_argument("--grad_accum", type=int, default=8)
@@ -72,7 +76,6 @@ def main() -> None:
     ckpt_dir = out_dir / "checkpoint"
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-    # 4-bit NF4 quantization: loads 8B weights in ~4GB instead of ~16GB
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",

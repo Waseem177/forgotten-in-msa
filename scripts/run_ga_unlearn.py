@@ -63,7 +63,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--anchor_run", required=True, help="e.g. anchor_v1")
     p.add_argument("--run_id",     required=True, help="e.g. ga_v1")
     p.add_argument("--split",      default="forget10")
-    p.add_argument("--model_name", default="CohereForAI/aya-expanse-8b")
+    p.add_argument("--model_name", default="Qwen/Qwen2.5-0.5B-Instruct")
     p.add_argument("--epochs",         type=int,   default=5)
     p.add_argument("--batch_size",     type=int,   default=4)
     p.add_argument("--lr",             type=float, default=5e-5)

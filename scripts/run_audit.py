@@ -54,7 +54,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--anchor_run",  required=True, help="e.g. anchor_v1")
     p.add_argument("--unlearn_run", required=True, help="e.g. ga_v1")
     p.add_argument("--split",       default="forget10")
-    p.add_argument("--model_name",  default="CohereForAI/aya-expanse-8b")
+    p.add_argument("--model_name",  default="Qwen/Qwen2.5-0.5B-Instruct")
     p.add_argument("--varieties",   nargs="+", default=_DEFAULT_VARIETIES)
     p.add_argument("--output_dir",  default="results")
     p.add_argument("--include_base", action="store_true",
