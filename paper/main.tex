@@ -23,7 +23,6 @@
 \usepackage{amsmath}
 \usepackage{hyperref}
 \usepackage{natbib}
-\usepackage{arabtex}   % optional — remove if not installed
 \usepackage{xcolor}
 \usepackage{subcaption}
 
@@ -224,6 +223,8 @@ MSA     & \TODO{X.XXX} & \TODO{X.XXX} & \TODO{+X.XXX} \\
 \label{tab:audit_loss}
 \end{table}
 
+% Appears once run_audit.py + analyze_audit.py have produced the plots.
+\IfFileExists{../results/ga_v1_audit_loss_bars.png}{%
 \begin{figure}[h]
   \centering
   \begin{subfigure}[b]{0.48\columnwidth}
@@ -241,7 +242,8 @@ MSA     & \TODO{X.XXX} & \TODO{X.XXX} & \TODO{+X.XXX} \\
     English forgetting is confirmed by a large loss increase; MSA loss
     barely changes, exposing systematic cross-lingual leakage.}
   \label{fig:main}
-\end{figure}
+\end{figure}}{\TODO{Results figure: run the audit to generate
+results/ga\_v1\_audit\_*.png}}
 
 \paragraph{English unlearning succeeds.}
 The GA-unlearned model shows a loss increase of \TODO{+X.XX} nats on
