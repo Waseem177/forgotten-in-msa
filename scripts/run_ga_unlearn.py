@@ -58,6 +58,14 @@ def make_loader(ds, tokenizer, max_length: int, batch_size: int, shuffle: bool) 
     )
 
 
+def save_checkpoint(model, tokenizer, out_dir: Path, config: dict) -> None:
+    ckpt_dir = out_dir / "checkpoint"
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
+    model.save_pretrained(str(ckpt_dir))
+    tokenizer.save_pretrained(str(ckpt_dir))
+    (out_dir / "config.json").write_text(json.dumps(config, indent=2))
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--anchor_run", required=True, help="e.g. anchor_v1")
@@ -81,8 +89,7 @@ def main() -> None:
 
     anchor_ckpt = Path(args.output_base) / args.anchor_run / "checkpoint"
     out_dir     = Path(args.output_base) / f"ga_{args.run_id}"
-    ckpt_dir    = out_dir / "checkpoint"
-    ckpt_dir.mkdir(parents=True, exist_ok=True)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
@@ -122,6 +129,21 @@ def main() -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     retain_iter = iter(retain_loader)
 
+    config = {
+        "type": "ga_unlearn",
+        "method": "GradDiff",
+        "anchor_run": args.anchor_run,
+        "run_id": args.run_id,
+        "split": args.split,
+        "unlearn_variety": "en",
+        "model_name": args.model_name,
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "lr": args.lr,
+        "retain_weight": args.retain_weight,
+    }
+    history: list[dict] = []
+
     model.train()
     for epoch in range(args.epochs):
         epoch_forget_loss = 0.0
@@ -149,30 +171,31 @@ def main() -> None:
             epoch_retain_loss += r_loss.item()
 
         n = len(forget_loader)
+        history.append({
+            "epoch": epoch + 1,
+            "forget_loss": epoch_forget_loss / n,
+            "retain_loss": epoch_retain_loss / n,
+        })
         print(
             f"Epoch {epoch + 1}/{args.epochs}  "
             f"forget_loss={epoch_forget_loss / n:.4f}  "
-            f"retain_loss={epoch_retain_loss / n:.4f}"
+            f"retain_loss={epoch_retain_loss / n:.4f}",
+            flush=True,
         )
 
-    model.save_pretrained(str(ckpt_dir))
-    tokenizer.save_pretrained(str(ckpt_dir))
+        # GradDiff passes through the useful region and then diverges, so every
+        # epoch is kept as its own run directory that run_audit.py can address
+        # directly via --unlearn_run ga_{run_id}_ep{n}.
+        epoch_dir = Path(args.output_base) / f"ga_{args.run_id}_ep{epoch + 1}"
+        save_checkpoint(model, tokenizer, epoch_dir,
+                        {**config, "selected_epoch": epoch + 1, "history": history})
 
-    config = {
-        "type": "ga_unlearn",
-        "method": "GradDiff",
-        "anchor_run": args.anchor_run,
-        "run_id": args.run_id,
-        "split": args.split,
-        "unlearn_variety": "en",
-        "model_name": args.model_name,
-        "epochs": args.epochs,
-        "batch_size": args.batch_size,
-        "lr": args.lr,
-        "retain_weight": args.retain_weight,
-    }
-    (out_dir / "config.json").write_text(json.dumps(config, indent=2))
+    save_checkpoint(model, tokenizer, out_dir, {**config, "history": history})
     print(f"\nUnlearned adapters saved to {out_dir}")
+    print("Per-epoch checkpoints:")
+    for h in history:
+        print(f"  ga_{args.run_id}_ep{h['epoch']}  "
+              f"forget={h['forget_loss']:.4f}  retain={h['retain_loss']:.4f}")
 
 
 if __name__ == "__main__":
