@@ -1,30 +1,23 @@
 % ============================================================
-%  MRL 2026 — Workshop on Multilingual Representation Learning
-%  Submission format: ACL rolling review (ARR) / acl2023 style
-%
-%  SETUP: Download style files from https://github.com/acl-org/acl-style-files
-%  and place acl2023.sty + acl_natbib.bst in this directory, then
-%  switch \documentclass to:
-%      \documentclass[11pt]{article}
-%      \usepackage[review]{acl2023}   % anonymous review mode
-%  or  \usepackage{acl2023}           % camera-ready / non-anonymous
-%
-%  For now, plain article is used so the skeleton compiles anywhere.
+%  MRL 2026 — 6th Workshop on Multilingual Representation Learning
+%  Regular deadline Aug 10 2026, 11.59pm UTC-12 (anywhere on Earth).
+%  4 or 8 pages excluding references, anonymised, EMNLP 2025 format.
+%  Remove the [review] option for the camera-ready version.
 % ============================================================
 
 \documentclass[11pt]{article}
-\usepackage[margin=1in]{geometry}
+\usepackage[review]{acl}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{times}
+\usepackage{latexsym}
 \usepackage{microtype}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{amsmath}
-\usepackage{hyperref}
-\usepackage{natbib}
 \usepackage{xcolor}
 \usepackage{subcaption}
+\usepackage{inconsolata}
 
 % ---- TODO helper ----
 \newcommand{\TODO}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
@@ -33,13 +26,16 @@
 \title{Forgotten in English, Remembered in Arabic:\\
 Cross-Lingual Leakage in LLM Unlearning}
 
+% The [review] option masks this block with "Anonymous ACL submission".
 \author{
-  Waseem\textsuperscript{1} \quad Fawaz\textsuperscript{1} \\
-  \textsuperscript{1}\TODO{Affiliation} \\
-  \texttt{\TODO{emails}}
+  Waseem \\
+  \TODO{Affiliation} \\
+  \texttt{\TODO{email}}
+  \And
+  Fawaz \\
+  \TODO{Affiliation} \\
+  \texttt{\TODO{email}}
 }
-
-\date{}
 
 \begin{document}
 \maketitle
@@ -284,13 +280,6 @@ forget-set loss while leaving the same facts fully recoverable in MSA.
 Multilingual loss probing — at minimal overhead via adapter hot-swapping —
 should become a standard component of unlearning evaluation.
 
-\paragraph{Limitations.}
-We use a single 0.5B model and a single unlearning method (GradDiff).
-NLLB translations are not human-verified beyond a spot-check.
-We do not evaluate generation quality or ROUGE, focusing solely on
-loss-based forgetting.
-\TODO{Fill in actual numbers and expand if results warrant it.}
-
 % ============================================================
 \section{Conclusion}
 \label{sec:conclusion}
@@ -305,6 +294,48 @@ cross-lingual unlearning evaluation.
 
 \TODO{Add code/data availability statement and acknowledgements before
 camera-ready.}
+
+% ============================================================
+% Unnumbered, placed after the Conclusion and before the references, where
+% it does not count against the page limit.
+\section*{Limitations}
+
+Our study uses a single backbone, \textsc{Qwen2.5-0.5B-Instruct}. We selected
+it after establishing that \textsc{Aya-Expanse-8B} could not be trained on our
+hardware: 4-bit quantisation leaves the 256k-token embedding matrix in
+\texttt{bf16}, consuming roughly 2.1\,GB before any transformer weight loads.
+Whether cross-lingual leakage grows or shrinks with scale, or with a backbone
+whose pretraining is deliberately multilingual, is therefore untested, and a
+0.5B model with limited Arabic capacity is the case where leakage should be
+easiest to observe.
+
+We evaluate a single unlearning method. Gradient-difference unlearning has an
+unbounded ascent term, and our runs pass through a narrow usable region before
+diverging: at a learning rate of $1{\times}10^{-5}$ the forget loss moves from
+$0.30$ to $1.02$ to $4.59$ and then to $57.8$ over four epochs. We select a
+checkpoint from within that region, so our results characterise a
+deliberately-chosen operating point rather than the method's behaviour
+throughout training. Bounded objectives such as NPO \citep{zhang2024npo} may
+leak differently.
+
+Our non-English probes are machine-translated with NLLB-200
+\citep{nllbteam2022nllb} rather than produced by native speakers. A translation
+artefact could depress apparent recall in a target language and be
+indistinguishable from genuine forgetting. We mitigate this with a native-
+speaker check of the Modern Standard Arabic probes, but the Egyptian Arabic and
+Hindi probes carry this risk unquantified, and NLLB's dialectal Arabic is
+weaker than its MSA.
+
+We measure forgetting by teacher-forced loss on the reference answer, not by
+what the model generates. A model may score a high loss on the gold answer
+while still emitting the memorised fact under sampling, so our numbers bound
+recall from one direction only. Generation-based metrics such as ROUGE against
+the forget set, and adversarial extraction, would tighten this.
+
+Finally, TOFU consists of synthetic facts about fictional authors, which is
+what makes clean forget/retain control possible. Real personal data is
+redundantly attested across a pretraining corpus in many languages at once,
+and we would expect leakage there to be at least as severe as what we report.
 
 % ============================================================
 \bibliography{refs}

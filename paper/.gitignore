@@ -5,5 +5,4 @@
 *.out
 *.pdf
 *.synctex.gz
-acl2023.sty
-acl_natbib.bst
+missfont.log
