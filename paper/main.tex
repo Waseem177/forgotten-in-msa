@@ -184,6 +184,20 @@ degradation present in both the anchor and unlearned conditions cancels to
 first order. The residual risk is a floor effect, which the retain-set control
 described below is designed to detect.
 
+A second artefact cuts the other way and needs to be stated plainly. NLLB
+frequently leaves the fictional author names in Latin script: 63 of the 400
+MSA forget answers (16\%) contain Latin characters, against 43 of the 400
+retain answers (11\%), and the strings are almost entirely the persona names
+themselves. The same name is sometimes transliterated in the Arabic question
+but not in the Arabic answer. This is not cancelled by the within-variety
+difference, because the untransliterated name is precisely the token whose
+loss unlearning is expected to move; a model that still predicts an English
+name embedded in an Arabic sentence is exhibiting same-language recall, not
+cross-lingual leakage. The bias therefore runs in the direction of our
+hypothesis, so we report the MSA delta both over the full 400 facts and over
+the 337-fact subset whose answers are free of Latin script, and treat the
+latter as the conservative estimate.
+
 \subsection{Anchor Model}
 We fine-tune \textsc{Qwen2.5-0.5B-Instruct} on the TOFU \emph{full} split
 (4,000 QA pairs) for 10 epochs to produce the \emph{anchor} model — one that
@@ -309,6 +323,10 @@ Despite this, the same unlearned model shows only a \TODO{+X.XX}-nat
 increase on MSA forget facts — a \TODO{XX\%} smaller delta.
 The model retains near-anchor-level predictability of MSA translations of
 the same facts it reportedly forgot in English.
+Restricting to the 337 MSA forget facts whose answers contain no Latin
+script, which removes the untransliterated persona names discussed in
+Section~\ref{sec:setup}, gives \TODO{+X.XX} nats
+(\TODO{XX\%} smaller than English).
 
 \paragraph{Leakage gap.}
 \TODO{Add one sentence quantifying the ratio $\Delta_\text{EN} / \Delta_\text{MSA}$
