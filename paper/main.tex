@@ -166,19 +166,55 @@ found X\% faithful.}
 We fine-tune \textsc{Qwen2.5-0.5B-Instruct} on the TOFU \emph{full} split
 (4,000 QA pairs) for 10 epochs to produce the \emph{anchor} model — one that
 has memorised all TOFU facts and serves as the pre-unlearning baseline.
-Training uses answer-only supervision (question tokens masked with $-100$).
+Training uses answer-only supervision (question tokens masked with $-100$),
+a learning rate of $1{\times}10^{-4}$ with cosine decay and 3\% warmup, and an
+effective batch size of 16 (batch size 2, gradient accumulation 8) at a maximum
+sequence length of 512 tokens. Training loss falls from 1.63 to 0.29, which we
+take as evidence the anchor has memorised the forget set: any subsequent rise
+in forget-set loss is attributable to unlearning rather than to the model never
+having learned the fact.
 
 \subsection{Unlearning: GradDiff}
-Starting from the anchor LoRA adapter, we apply GradDiff \citep{yao2023llmunlearning}
-for 5 epochs:
+Starting from the anchor LoRA adapter, we apply GradDiff
+\citep{yao2023llmunlearning}:
 \[
   \mathcal{L} = -\mathcal{L}_\text{forget} + \lambda \, \mathcal{L}_\text{retain},
-  \quad \lambda = 0.5
+  \quad \lambda = 1.0
 \]
 where $\mathcal{L}_\text{forget}$ is the cross-entropy loss on forget-set
 facts (maximised via negation) and $\mathcal{L}_\text{retain}$ is the
 cross-entropy loss on retain-set facts (minimised to preserve general ability).
-Unlearning is applied on English facts only.
+Unlearning is applied on English facts only, with a learning rate of
+$1{\times}10^{-5}$ and batch size 4.
+
+\paragraph{Checkpoint selection.}
+The ascent term is unbounded, so GradDiff does not converge: it passes through
+a usable region and then destroys the model. Table~\ref{tab:trajectory} shows
+the trajectory. We checkpoint after every epoch and select epoch 2, the last
+point at which retain loss remains within a factor of two of the anchor. This
+selection is a property of the method, not a tuning artefact of our setup —
+reporting a single end-of-training checkpoint would characterise either an
+unchanged model or a destroyed one.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+Epoch & $\mathcal{L}_\text{forget}$ & $\mathcal{L}_\text{retain}$ & Status \\
+\midrule
+0 (anchor) & 0.29 & 0.29 & memorised \\
+1 & 0.30 & 0.30 & unchanged \\
+2 & 1.02 & 0.57 & \textbf{selected} \\
+3 & 4.59 & 1.88 & degrading \\
+4 & 57.84 & 8.17 & diverged \\
+\bottomrule
+\end{tabular}
+\caption{GradDiff training trajectory at $\lambda=1.0$,
+lr $1{\times}10^{-5}$. Losses are means over the English forget and retain
+batches within each epoch.}
+\label{tab:trajectory}
+\end{table}
 
 \subsection{Audit Metric}
 We measure per-token cross-entropy loss on forget-set answer tokens for
