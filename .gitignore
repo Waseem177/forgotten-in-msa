@@ -9,14 +9,21 @@ dist/
 build/
 .eggs/
 
-# Virtual environment
+# Virtual environments. Match by shape, not by name — this file previously
+# listed only LLM/ and a venv312/ on another machine was committed whole.
 LLM/
+venv*/
+.venv/
+env/
+ENV/
+pyvenv.cfg
 
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Model checkpoints (too large for git)
+# Model checkpoints (too large for git). Adapters travel by GitHub release,
+# not by pull — see STATUS.md.
 runs/*/checkpoint/
 models/
 *.bin
@@ -24,6 +31,11 @@ models/
 *.pt
 *.ckpt
 *.pth
+
+# Release archives. checkpoints.tar.gz is 99MB and already published.
+*.tar.gz
+*.tgz
+*.zip
 
 # HuggingFace cache
 .cache/
