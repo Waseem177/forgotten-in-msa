@@ -346,9 +346,18 @@ regardless of which surface language the probe uses.
 GA unlearning perturbs the output distribution for English token sequences
 but does not alter the underlying shared representations sufficiently to
 block MSA-language queries.
-This is consistent with the syntactic-distance hypothesis of
-\citet{farashah2026multilingual}: MSA is the closest Arabic variety to
-English in NLLB's training distribution, yet leakage still occurs.
+This is the direction \citet{farashah2026multilingual} predict. They find
+syntactic similarity to be the strongest predictor of whether unlearning
+transfers between languages, and English and Arabic are syntactically remote
+— different families, different dominant word order, and templatic rather
+than concatenative morphology — so weak transfer, and therefore leakage, is
+the expected outcome rather than a surprising one.
+What their account does not by itself settle is whether the effect is
+linguistic or a matter of resourcing, since syntactic distance and training
+representation are confounded across their ten languages. Our result speaks
+to that: MSA is the best-represented Arabic variety in both the backbone's
+pretraining and NLLB's translation distribution, so leakage here cannot be
+attributed to a thin-resource target.
 
 \paragraph{Implications for evaluation.}
 Current unlearning benchmarks (including TOFU) report metrics in a single
