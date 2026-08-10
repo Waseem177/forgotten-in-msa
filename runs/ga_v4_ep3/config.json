@@ -1,0 +1,31 @@
+{
+  "type": "ga_unlearn",
+  "method": "GradDiff",
+  "anchor_run": "anchor_v1",
+  "run_id": "v4",
+  "split": "forget10",
+  "unlearn_variety": "en",
+  "model_name": "Qwen/Qwen2.5-0.5B-Instruct",
+  "epochs": 4,
+  "batch_size": 4,
+  "lr": 1e-05,
+  "retain_weight": 1.0,
+  "selected_epoch": 3,
+  "history": [
+    {
+      "epoch": 1,
+      "forget_loss": 0.29703484699130056,
+      "retain_loss": 0.3036261098086834
+    },
+    {
+      "epoch": 2,
+      "forget_loss": 1.0245588973164559,
+      "retain_loss": 0.5723779648542404
+    },
+    {
+      "epoch": 3,
+      "forget_loss": 4.588089183568955,
+      "retain_loss": 1.8762029641866684
+    }
+  ]
+}

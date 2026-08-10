@@ -1,0 +1,13 @@
+{
+  "type": "ga_unlearn",
+  "method": "GradDiff",
+  "anchor_run": "anchor_v1",
+  "run_id": "v1",
+  "split": "forget10",
+  "unlearn_variety": "en",
+  "model_name": "Qwen/Qwen2.5-0.5B-Instruct",
+  "epochs": 5,
+  "batch_size": 4,
+  "lr": 5e-05,
+  "retain_weight": 0.5
+}

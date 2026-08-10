@@ -1,0 +1,15 @@
+{
+  "type": "anchor",
+  "model_name": "Qwen/Qwen2.5-0.5B-Instruct",
+  "run_id": "v1",
+  "tofu_split": "full",
+  "epochs": 10,
+  "batch_size": 2,
+  "grad_accum": 8,
+  "effective_batch_size": 16,
+  "lr": 0.0001,
+  "lora_r": 16,
+  "lora_alpha": 32,
+  "max_length": 512,
+  "adapter_type": "QLoRA-nf4"
+}
