@@ -75,11 +75,12 @@ retrievable in Arabic, the unlearning is incomplete regardless of what
 English-only metrics report.
 
 Prior work has begun to surface this problem.
-\citet{choi2024lingtea} show that knowledge unlearned in one language
-can persist in others, proposing LingTea as a cross-lingual-aware fix.
+\citet{choi2024crosslingual} show that knowledge unlearned in one language
+can persist in others, and propose an adaptive scheme that assigns
+language-dependent weights during unlearning.
 \citet{farashah2026multilingual} confirm the phenomenon on Aya-Expanse-8B
-and TOFU across nine languages, finding that syntactic distance from the
-unlearning language predicts how much leakage occurs.
+across ten languages spanning five families, finding that syntactic
+similarity is the strongest predictor of how much leakage occurs.
 Crucially, both treat Arabic as a single node; neither examines whether
 MSA and dialectal Arabic exhibit \emph{different} leakage profiles.
 
@@ -96,9 +97,10 @@ output of the evaluation pipeline.
   \item We release an open audit harness that runs loss-based cross-lingual
         probes by swapping LoRA adapters on a shared frozen base — no
         second GPU required.
-  \item We show the English--MSA leakage gap persists under the standard
-        GradDiff retain-loss regularisation, suggesting the issue is
-        architectural rather than hyper-parameter sensitive.
+  \item We characterise the instability of gradient-ascent unlearning, which
+        passes through a narrow usable region before collapsing, and report
+        the operating point at which our measurement is taken so that the
+        result is interpretable rather than a single arbitrary endpoint.
 \end{enumerate}
 
 % ============================================================
@@ -123,11 +125,12 @@ The standard evaluation uses forget10 (the 10\% held-out forget split)
 and measures forget quality via loss and ROUGE score.
 
 \paragraph{Cross-lingual unlearning.}
-\citet{choi2024lingtea} demonstrate that unlearning in one language does not
-erase knowledge in others and propose LingTea, a multilingual joint
-unlearning objective.
-\citet{doshi2024multilingual} show that rephrasing or translating a query
-can bypass keyword-filter unlearning.
+\citet{choi2024crosslingual} demonstrate that unlearning in one language does
+not erase knowledge in others, and propose an adaptive unlearning scheme with
+language-dependent weights.
+\citet{doshi2024unlearn} show that unlearned knowledge resurfaces under simple
+black-box perturbations of the query, including rephrasing and translating it
+into another language.
 Most related to our work, \citet{farashah2026multilingual} find that
 syntactic distance between languages is the strongest predictor of leakage
 magnitude — implying Arabic dialects, which are syntactically closer to MSA
@@ -392,6 +395,5 @@ and we would expect leakage there to be at least as severe as what we report.
 
 % ============================================================
 \bibliography{refs}
-\bibliographystyle{acl_natbib}
 
 \end{document}

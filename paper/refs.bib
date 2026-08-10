@@ -2,59 +2,88 @@
 %  MRL 2026 — Cross-Lingual Unlearning Leakage
 %  Bibliography
 %
-%  STATUS: UNVERIFIED — drafted from memory, not checked against the actual
-%  papers. Author lists, venues, and arXiv IDs may all be wrong.
+%  Entries marked VERIFIED were checked against the ACL Anthology or arXiv
+%  on 2026-08-10. Entries marked UNVERIFIED are standard citations carried
+%  over from the original draft and have not been independently confirmed.
 % ============================================================
 
-% TOFU benchmark
+% VERIFIED — COLM 2024, CMU. openreview.net/pdf?id=B41hNBoWLo
 @inproceedings{maini2024tofu,
   title     = {{TOFU}: A Task of Fictitious Unlearning for {LLMs}},
-  author    = {Maini, Pratyush and Feng, Zhili and Schwarzschild, Avi and Lipton, Zachary C. and Kolter, J. Zico},
-  booktitle = {Proceedings of the Conference on Language Modeling (COLM)},
+  author    = {Maini, Pratyush and Feng, Zhili and Schwarzschild, Avi and
+               Lipton, Zachary C. and Kolter, J. Zico},
+  booktitle = {Proceedings of the First Conference on Language Modeling (COLM)},
   year      = {2024},
 }
 
-% LingTea — cross-lingual unlearning (primary prior work)
-@inproceedings{choi2024lingtea,
-  title     = {Cross-Lingual Knowledge Unlearning in Large Language Models},
-  author    = {Choi, Minseok and others},
-  booktitle = {Findings of the Association for Computational Linguistics: {EMNLP} 2024},
+% VERIFIED — aclanthology.org/2024.findings-emnlp.630
+% NOTE: this paper does NOT name its method "LingTea". It proposes an
+% adaptive unlearning scheme with language-dependent weights.
+@inproceedings{choi2024crosslingual,
+  title     = {Cross-Lingual Unlearning of Selective Knowledge in
+               Multilingual Language Models},
+  author    = {Choi, Minseok and Min, Kyunghyun and Choo, Jaegul},
+  booktitle = {Findings of the Association for Computational Linguistics:
+               {EMNLP} 2024},
+  pages     = {10732--10747},
+  address   = {Miami, Florida, USA},
   year      = {2024},
+  doi       = {10.18653/v1/2024.findings-emnlp.630},
 }
 
-% Farashah et al. 2026 — Multilingual Amnesia (closest concurrent work)
+% VERIFIED — arxiv.org/abs/2601.05641
 @article{farashah2026multilingual,
-  title   = {Multilingual Amnesia: Evaluating Cross-Lingual Unlearning in {LLMs}},
-  author  = {Farashah, Mohsen and others},
+  title   = {Multilingual Amnesia: On the Transferability of Unlearning in
+             Multilingual {LLMs}},
+  author  = {Dehghanpour Farashah, Alireza and Khandelwal, Aditi and
+             Fauchard, Marylou and Shi, Zhuan and Rostamzadeh, Negar and
+             Farnadi, Golnoosh},
   journal = {arXiv preprint arXiv:2601.05641},
   year    = {2026},
 }
 
-% Gradient Ascent / GradDiff unlearning
-@article{yao2023llmunlearning,
-  title   = {Large Language Model Unlearning},
-  author  = {Yao, Yuanshun and Xu, Xiaojun and Liu, Yang},
-  journal = {arXiv preprint arXiv:2310.10683},
-  year    = {2023},
+% VERIFIED — arxiv.org/abs/2310.10683, appeared at NeurIPS 37
+@inproceedings{yao2023llmunlearning,
+  title     = {Large Language Model Unlearning},
+  author    = {Yao, Yuanshun and Xu, Xiaojun and Liu, Yang},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {37},
+  year      = {2024},
 }
 
-% NPO — Negative Preference Optimization
+% VERIFIED — arxiv.org/abs/2404.05868
 @article{zhang2024npo,
-  title   = {Negative Preference Optimization: How to Make {LLMs} Forget},
+  title   = {Negative Preference Optimization: From Catastrophic Collapse to
+             Effective Unlearning},
   author  = {Zhang, Ruiqi and Lin, Licong and Bai, Yu and Mei, Song},
   journal = {arXiv preprint arXiv:2404.05868},
   year    = {2024},
 }
 
-% Doshi & Stickland 2024 — keyword filter bypass via rephrasing/translation
-@inproceedings{doshi2024multilingual,
-  title     = {Does Unlearning in {LLMs} Fail via Rephrasing?},
-  author    = {Doshi, Vineet and Stickland, Asa Cooper},
-  booktitle = {Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics},
-  year      = {2024},
+% VERIFIED — arxiv.org/abs/2411.12103
+@article{doshi2024unlearn,
+  title   = {Does Unlearning Truly Unlearn? A Black Box Evaluation of {LLM}
+             Unlearning Methods},
+  author  = {Doshi, Jai and Stickland, Asa Cooper},
+  journal = {arXiv preprint arXiv:2411.12103},
+  year    = {2024},
 }
 
-% Qwen2.5 model
+% VERIFIED — aclanthology.org/2023.acl-long.805
+% Replaces the incorrect "si2023knowledge" entry from the original draft.
+@inproceedings{jang2023knowledge,
+  title     = {Knowledge Unlearning for Mitigating Privacy Risks in Language
+               Models},
+  author    = {Jang, Joel and Yoon, Dongkeun and Yang, Sohee and Cha, Sungmin
+               and Lee, Moontae and Logeswaran, Lajanugen and Seo, Minjoon},
+  booktitle = {Proceedings of the 61st Annual Meeting of the Association for
+               Computational Linguistics (Volume 1: Long Papers)},
+  pages     = {14389--14408},
+  address   = {Toronto, Canada},
+  year      = {2023},
+}
+
+% UNVERIFIED
 @article{qwen2025qwen25,
   title   = {{Qwen2.5} Technical Report},
   author  = {{Qwen Team}},
@@ -62,40 +91,36 @@
   year    = {2025},
 }
 
-% NLLB translation model
+% UNVERIFIED
 @article{nllbteam2022nllb,
-  title   = {No Language Left Behind: Scaling Human-Centered Machine Translation},
+  title   = {No Language Left Behind: Scaling Human-Centered Machine
+             Translation},
   author  = {{NLLB Team}},
   journal = {arXiv preprint arXiv:2207.04672},
   year    = {2022},
 }
 
-% LoRA
+% UNVERIFIED
 @inproceedings{hu2022lora,
   title     = {{LoRA}: Low-Rank Adaptation of Large Language Models},
-  author    = {Hu, Edward J. and Shen, Yelong and Wallis, Phillip and Allen-Zhu, Zeyuan and Li, Yuanzhi and Wang, Shean and Wang, Lu and Chen, Weizhu},
-  booktitle = {Proceedings of the Tenth International Conference on Learning Representations ({ICLR})},
+  author    = {Hu, Edward J. and Shen, Yelong and Wallis, Phillip and
+               Allen-Zhu, Zeyuan and Li, Yuanzhi and Wang, Shean and Wang, Lu
+               and Chen, Weizhu},
+  booktitle = {Proceedings of the Tenth International Conference on Learning
+               Representations ({ICLR})},
   year      = {2022},
 }
 
-% Aya Expanse — for completeness (future work / full FYP)
+% UNVERIFIED
 @article{ustun2024aya,
-  title   = {Aya Model: An Instruction Finetuned Open-Access Multilingual Language Model},
+  title   = {Aya Model: An Instruction Finetuned Open-Access Multilingual
+             Language Model},
   author  = {Üstün, Ahmet and others},
   journal = {arXiv preprint arXiv:2402.07827},
   year    = {2024},
 }
 
-% VERIFY — this title is Jang et al. (ACL 2023), arXiv:2210.01504. The author
-% and arXiv ID below are almost certainly wrong; replace the whole entry.
-@article{si2023knowledge,
-  title   = {Knowledge Unlearning for Mitigating Privacy Risks in Language Models},
-  author  = {Si, Siqing and others},
-  journal = {arXiv preprint arXiv:2310.02738},
-  year    = {2023},
-}
-
-% Right to be forgotten / legal motivation
+% UNVERIFIED
 @inproceedings{cao2015towards,
   title     = {Towards Making Systems Forget with Machine Unlearning},
   author    = {Cao, Yinzhi and Yang, Junfeng},
