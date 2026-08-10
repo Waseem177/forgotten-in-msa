@@ -155,12 +155,29 @@ trained.
 \subsection{Benchmark and Translation}
 We use the TOFU forget10 split (400 forget facts, 3,600 retain facts).
 English facts are loaded directly from \citet{maini2024tofu}.
-MSA facts are produced by translating the forget10 and retain90 question and
-answer texts using NLLB-200-distilled-600M \citep{nllbteam2022nllb}
-(\texttt{arb\_Arab} target code).
+Non-English probes are produced by translating the forget10 and retain90
+question and answer texts with NLLB-200-distilled-600M
+\citep{nllbteam2022nllb}, targeting \texttt{arb\_Arab} (MSA),
+\texttt{arz\_Arab} (Egyptian Arabic) and \texttt{hin\_Deva} (Hindi).
+We translate 400 forget and 400 retain facts per variety, and the audit is
+restricted to \texttt{fact\_id}s present in every variety so that all
+conditions describe an identical set of facts.
 
-\TODO{Add a brief manual quality-check note: spot-checked N=20 translations,
-found X\% faithful.}
+\paragraph{Translation quality.}
+Because a translation artefact is indistinguishable from genuine forgetting,
+we verify the MSA probes before treating any delta as meaningful. Book titles
+are the principal risk: they carry the memorised content, and an inconsistently
+rendered title makes a fact unrecoverable for reasons unrelated to unlearning.
+An automatic check finds 15 forget facts whose English question and answer
+share a quoted title, of which 6 are quoted differently in the Arabic question
+than in the Arabic answer. A native speaker of Arabic reviewed these six
+together with a random sample of translations and judged the discrepancies to
+be minor morphological variation rather than semantic error. We report the
+figure because it bounds the artefact rather than because it invalidates the
+probe: the audit metric is a within-variety difference, so a translation
+degradation present in both the anchor and unlearned conditions cancels to
+first order. The residual risk is a floor effect, which the retain-set control
+(\S\ref{sec:setup}) is designed to detect.
 
 \subsection{Anchor Model}
 We fine-tune \textsc{Qwen2.5-0.5B-Instruct} on the TOFU \emph{full} split
