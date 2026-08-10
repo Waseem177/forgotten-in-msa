@@ -79,8 +79,9 @@ Prior work has begun to surface this problem.
 can persist in others, and propose an adaptive scheme that assigns
 language-dependent weights during unlearning.
 \citet{farashah2026multilingual} confirm the phenomenon on Aya-Expanse-8B
-across ten languages spanning five families, finding that syntactic
-similarity is the strongest predictor of how much leakage occurs.
+\citep{dang2024ayaexpanse} across ten languages spanning five families,
+finding that syntactic similarity is the strongest predictor of how much
+leakage occurs.
 Crucially, both treat Arabic as a single node; neither examines whether
 MSA and dialectal Arabic exhibit \emph{different} leakage profiles.
 
@@ -109,7 +110,8 @@ output of the evaluation pipeline.
 
 \paragraph{Machine unlearning for LLMs.}
 Gradient Ascent (GA) unlearning maximises loss on forget-set examples,
-driving the model away from those predictions.
+driving the model away from those predictions
+\citep{jang2023knowledge}.
 GradDiff \citep{yao2023llmunlearning} augments GA with a retain-set
 cross-entropy term to prevent catastrophic forgetting of general capabilities.
 Negative Preference Optimisation (NPO) \citep{zhang2024npo} reformulates
