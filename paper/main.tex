@@ -18,6 +18,7 @@
 \usepackage{xcolor}
 \usepackage{subcaption}
 \usepackage{inconsolata}
+\usepackage{enumitem}
 
 % ---- TODO helper ----
 \newcommand{\TODO}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
@@ -93,7 +94,10 @@ leakage occurs.
 
 We set out to extend this line to Arabic, which both treat as a single node,
 by separating MSA from a dialectal variety. What we report instead is a
-problem with how the measurement is made.
+problem with how the measurement is made. MSA and Egyptian Arabic do still
+separate in our data, but on a quantity that turns out not to be leakage,
+and we treat that separation as evidence about the audit rather than about
+the varieties.
 
 The standard cross-lingual audit compares an unlearned model against the
 fine-tuned model it started from, in each language. A large loss increase in
@@ -267,11 +271,15 @@ $1{\times}10^{-5}$ and batch size 4.
 \paragraph{Checkpoint selection.}
 The ascent term is unbounded, so GradDiff does not converge: it passes through
 a usable region and then destroys the model. Table~\ref{tab:trajectory} shows
-the trajectory. We checkpoint after every epoch and select epoch 2, the last
-point at which retain loss remains within a factor of two of the anchor. This
-selection is a property of the method, not a tuning artefact of our setup —
-reporting a single end-of-training checkpoint would characterise either an
-unchanged model or a destroyed one.
+the trajectory. We checkpoint after every epoch and select epoch 2, which is
+bracketed from both ends: epoch 1 has not unlearned at all, with forget loss
+at $0.30$ against the anchor's $0.29$, while epoch 3 has already driven retain
+loss to $1.88$, over six times the anchor's. Epoch 2 is the only checkpoint at
+which forget loss has moved
+substantially and retain loss has not. The need to select at all is a
+property of the method, not a tuning artefact of our setup — reporting a
+single end-of-training checkpoint would characterise either an unchanged
+model or a destroyed one.
 
 \begin{table}[t]
 \centering
@@ -288,8 +296,11 @@ Epoch & $\mathcal{L}_\text{forget}$ & $\mathcal{L}_\text{retain}$ & Status \\
 \bottomrule
 \end{tabular}
 \caption{GradDiff training trajectory at $\lambda=1.0$,
-lr $1{\times}10^{-5}$. Losses are means over the English forget and retain
-batches within each epoch.}
+lr $1{\times}10^{-5}$. Losses are training-loop running means over the English
+forget and retain batches within each epoch, recorded in training mode with
+LoRA dropout active. They are used only to select a checkpoint and are not
+commensurable with the eval-mode per-example probe losses of
+Table~\ref{tab:losses}.}
 \label{tab:trajectory}
 \end{table}
 
@@ -459,6 +470,14 @@ and an unlearning delta of $+0.546 \pm 0.023$ against $+0.550$ on the full
 set. The artefact we were most concerned about is not what produces the
 null.
 
+\paragraph{The null is not an underpowered one.}
+At $n=400$ the confidence intervals on the non-English nets are narrow
+enough to matter: $\pm 0.052$, $\pm 0.054$ and $\pm 0.019$ nats in Step 1,
+against a Step 2 English net of $+0.979$. A transfer effect anywhere near
+the magnitude of the English one would have been detected many times over.
+What the data cannot exclude is an effect one to two orders of magnitude
+smaller, which is the bound we claim rather than zero.
+
 % ============================================================
 \section{Discussion}
 \label{sec:discussion}
@@ -503,13 +522,20 @@ multilingual backbones, and nothing here contradicts them. We claim that the
 evidence standard usually applied to it is too weak to distinguish it from
 the case where transfer never occurred, and that in at least one reasonable
 setup the weak standard returns a confident false positive. Three
-requirements follow. Report the base model per language, not once overall.
-Report a retain-set probe alongside every forget-set probe, so that
-fact-specific movement can be separated from drift. And state the transfer
-delta as a precondition of the leakage claim: where $\Delta_v^{\text{tr}}$
-does not show acquisition in variety $v$, no statement about forgetting in
-$v$ is licensed. The cost is inference only, on adapters the pipeline
-already produces.
+requirements follow.
+
+\begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=4pt]
+\item Probe the base model in every language the audit reports, not once
+overall.
+\item Probe a retain set alongside every forget set, so that fact-specific
+movement can be separated from drift.
+\item Report $\Delta_v^{\text{tr}}$ as a precondition of the leakage claim:
+where it does not show acquisition in variety $v$, no statement about
+forgetting in $v$ is licensed.
+\end{enumerate}
+
+\noindent The cost is inference only, on adapters the pipeline already
+produces.
 
 \paragraph{What it would take to test leakage properly.}
 The experiment our original question needs is an anchor that demonstrably
