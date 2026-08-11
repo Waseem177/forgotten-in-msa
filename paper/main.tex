@@ -18,7 +18,6 @@
 \usepackage{xcolor}
 \usepackage{subcaption}
 \usepackage{inconsolata}
-\usepackage{enumitem}
 
 % ---- TODO helper ----
 \newcommand{\TODO}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
@@ -524,12 +523,12 @@ the case where transfer never occurred, and that in at least one reasonable
 setup the weak standard returns a confident false positive. Three
 requirements follow.
 
-\begin{enumerate}[leftmargin=*,itemsep=2pt,topsep=4pt]
-\item Probe the base model in every language the audit reports, not once
+\begin{enumerate}
+  \item Probe the base model in every language the audit reports, not once
 overall.
-\item Probe a retain set alongside every forget set, so that fact-specific
+  \item Probe a retain set alongside every forget set, so that fact-specific
 movement can be separated from drift.
-\item Report $\Delta_v^{\text{tr}}$ as a precondition of the leakage claim:
+  \item Report $\Delta_v^{\text{tr}}$ as a precondition of the leakage claim:
 where it does not show acquisition in variety $v$, no statement about
 forgetting in $v$ is licensed.
 \end{enumerate}
