@@ -1,12 +1,12 @@
 % ============================================================
-%  MRL 2026 — 6th Workshop on Multilingual Representation Learning
-%  Regular deadline Aug 10 2026, 11.59pm UTC-12 (anywhere on Earth).
-%  4 or 8 pages excluding references, anonymised, EMNLP 2025 format.
-%  Remove the [review] option for the camera-ready version.
+%  Zenodo preprint. De-anonymised, DOI-citable.
+%  The ARR October cycle (submit 2026-10-12) remains the peer-review
+%  target; ARR has no anonymity period, so preprinting does not block it.
+%  Switch back to [review] to build the anonymised ARR submission.
 % ============================================================
 
 \documentclass[11pt]{article}
-\usepackage[review]{acl}
+\usepackage[preprint]{acl}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{times}
@@ -26,15 +26,17 @@
 \title{A False Positive in Cross-Lingual\\
 Unlearning Evaluation}
 
-% The [review] option masks this block with "Anonymous ACL submission".
+% Shown in full under [preprint]; masked again if you switch to [review].
 \author{
-  Waseem \\
-  \TODO{Affiliation} \\
-  \texttt{\TODO{email}}
+  Mohamed Waseem \\
+  Sathyabama Institute of \\ Science and Technology \\
+  Chennai, India \\
+  \texttt{waseeeem177@gmail.com}
   \And
-  Fawaz \\
-  \TODO{Affiliation} \\
-  \texttt{\TODO{email}}
+  Mohammed Fawaz \\
+  Sathyabama Institute of \\ Science and Technology \\
+  Chennai, India \\
+  \texttt{fawaznx97@gmail.com}
 }
 
 \begin{document}
@@ -567,19 +569,15 @@ forget and retain probes, as the minimum sufficient design, and release the
 harness that produces it by adapter hot-swapping on a single frozen base.
 
 % ============================================================
-% Unnumbered so it does not consume a section number. The repository is
-% private during review; naming it here would break anonymisation, so the
-% URL is deliberately withheld until camera-ready. Acknowledgements are
-% omitted from the anonymous submission by ACL policy and added later.
+% Unnumbered so it does not consume a section number.
 \section*{Code and Data Availability}
 
-We will publicly release the training, unlearning and audit code, the
-QLoRA adapter weights for the anchor and unlearned checkpoints, and the
-machine-translated Arabic evaluation sets, under an open licence upon
-acceptance. The repository URL is withheld from this version to preserve
-anonymity. The underlying TOFU corpus is distributed by
-\citet{maini2024tofu} under the MIT licence, which permits the
-redistribution of our translated derivative.
+The training, unlearning and audit code, the QLoRA adapter weights for the
+anchor and unlearned checkpoints, and the machine-translated Arabic
+evaluation sets are available at
+\url{https://github.com/Waseem177/forgotten-in-msa}. The underlying TOFU
+corpus is distributed by \citet{maini2024tofu} under the MIT licence, which
+permits the redistribution of our translated derivative.
 
 % ============================================================
 % Unnumbered, placed after the Conclusion and before the references, where
