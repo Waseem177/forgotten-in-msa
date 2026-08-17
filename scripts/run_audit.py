@@ -87,12 +87,14 @@ def select_retain_ids(splits: dict, n: int, seed: int) -> set[int]:
 def main() -> None:
     args = parse_args()
 
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_compute_dtype=torch.bfloat16,
-    )
+    bnb_config = None
+    if torch.cuda.is_available():
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+        )
 
     anchor_ckpt  = str(Path("runs") / args.anchor_run  / "checkpoint")
     unlearn_ckpt = str(Path("runs") / args.unlearn_run / "checkpoint")
@@ -102,11 +104,16 @@ def main() -> None:
         tokenizer.pad_token = tokenizer.eos_token
 
     print(f"Loading base model {args.model_name}...")
+    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    print(f"Using device: {device}")
     base = AutoModelForCausalLM.from_pretrained(
         args.model_name,
         quantization_config=bnb_config,
-        device_map="auto",
+        device_map=None,
+        torch_dtype=torch.float32,
+        low_cpu_mem_usage=False,
     )
+    base = base.to(device)
 
     # Load both adapters at once; swap between them with set_adapter()
     print("Loading anchor adapters...")
