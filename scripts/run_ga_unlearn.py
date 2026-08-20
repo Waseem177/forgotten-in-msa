@@ -30,6 +30,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.data.tofu import load_tofu
 from src.train.collator import AnswerOnlyCollator
+from src.utils import HistoryWriter
 
 _PROMPT = "Question: {question}\nAnswer: "
 
@@ -143,6 +144,8 @@ def main() -> None:
         "retain_weight": args.retain_weight,
     }
     history: list[dict] = []
+    hist = HistoryWriter(out_dir, {**config, "total_steps": len(forget_loader) * args.epochs})
+    global_step = 0
 
     model.train()
     for epoch in range(args.epochs):
@@ -167,8 +170,13 @@ def main() -> None:
             optimizer.step()
             optimizer.zero_grad()
 
-            epoch_forget_loss += f_loss.item()
-            epoch_retain_loss += r_loss.item()
+            f_val, r_val = f_loss.item(), r_loss.item()
+            epoch_forget_loss += f_val
+            epoch_retain_loss += r_val
+
+            global_step += 1
+            hist.log(step=global_step, epoch=epoch + 1,
+                     forget_loss=f_val, retain_loss=r_val)
 
         n = len(forget_loader)
         history.append({

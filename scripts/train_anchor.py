@@ -32,11 +32,24 @@ from transformers import (
     AutoTokenizer,
     BitsAndBytesConfig,
     Trainer,
+    TrainerCallback,
     TrainingArguments,
 )
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.train import AnswerOnlyCollator
+from src.utils import HistoryWriter
+
+
+class HistoryCallback(TrainerCallback):
+    def __init__(self, writer: HistoryWriter):
+        self.writer = writer
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        if logs and "loss" in logs:
+            self.writer.log(step=state.global_step,
+                            epoch=round(state.epoch or 0.0, 3),
+                            loss=logs["loss"])
 
 _HF_REPO = "locuslab/TOFU"
 _PROMPT = "Question: {question}\nAnswer: "
@@ -130,11 +143,20 @@ def main() -> None:
         report_to="none",
     )
 
+    hist = HistoryWriter(out_dir, {
+        "type": "anchor",
+        "run_id": args.run_id,
+        "model_name": args.model_name,
+        "epochs": args.epochs,
+        "lr": args.lr,
+    })
+
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=ds,
         data_collator=AnswerOnlyCollator(tokenizer),
+        callbacks=[HistoryCallback(hist)],
     )
 
     trainer.train()
