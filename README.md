@@ -119,8 +119,8 @@ pulled from HuggingFace separately.
 
 ## Data
 
-TOFU is from Maini et al. (2024), distributed under the MIT licence, which
-permits redistribution of our translated derivative. The non-English probes are
+Our code is MIT licensed; see `LICENSE`. TOFU is from Maini et al. (2024),
+also MIT, which permits redistribution of our translated derivative. The non-English probes are
 machine translations and are treated as such throughout: the paper reports a
 robustness check restricting MSA to the 337 answers containing no Latin-script
 residue, which moves the result negligibly.
