@@ -128,5 +128,9 @@ residue, which moves the result negligibly.
 ## Authors
 
 Mohamed Waseem and Mohammed Fawaz, Sathyabama Institute of Science and
-Technology, Chennai. Waseem wrote the paper and ran the anchor and unlearning
-training; Fawaz owns the audit and analysis code and the runs it produces.
+Technology, Chennai. The work splits into two pillars:
+
+- **Mohamed Waseem** — method pillar: anchor training, GradDiff unlearning, and
+  the paper.
+- **Mohammed Fawaz** — audit pillar: the cross-lingual audit, the analysis and
+  the figures.
