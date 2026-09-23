@@ -1,5 +1,8 @@
 # A False Positive in Cross-Lingual Unlearning Evaluation
 
+Accepted at **MRL 2026**, the 6th Workshop on Multilingual Representation
+Learning, co-located with EMNLP 2026 in Budapest.
+
 Code, adapters and evaluation data for our audit of cross-lingual unlearning in
 `Qwen2.5-0.5B-Instruct`.
 
@@ -12,14 +15,14 @@ routinely left out.
 
 Unlearning TOFU fictional-persona facts with GradDiff and auditing across
 English, Modern Standard Arabic, Egyptian Arabic and Hindi reproduces exactly
-that signature: forget-set loss rises by +1.818 nats in English but only +0.550
-in MSA, 30% as much. Measuring the **base** model as well shows the signature to
+that signature: forget-set loss rises by +2.922 nats in English but only +0.774
+in MSA, 26% as much. Measuring the **base** model as well shows the signature to
 be an artefact. English-only fine-tuning left no measurable trace of those facts
 in the other three varieties — it raised forget-set loss there, and raised
 retain-set loss by an indistinguishable amount. There is no cross-lingual memory
 for unlearning to have left behind. Once the never-learned and
-uniform-degradation components are removed, the MSA effect is +0.034 nats, 3.5%
-of English rather than 30%.
+uniform-degradation components are removed, the MSA effect is +0.054 nats, 2.5%
+of English rather than 26%.
 
 The methodological claim: a base-model transfer control and a retain-set control
 are jointly necessary for any cross-lingual unlearning result, and both come at
@@ -95,14 +98,41 @@ adds the transfer control, `--probe_retain` adds the retain control.
 
 ```
 python scripts/run_audit.py --anchor_run anchor_v1 --unlearn_run ga_v4_ep2 \
-    --varieties en msa egy hi --include_base --probe_retain
+    --varieties en msa egy hi --include_base --probe_retain \
+    --precision nf4 --output_dir results/nf4
 
-python scripts/analyze_audit.py --audit_file results/ga_v4_ep2_audit.jsonl
+python scripts/analyze_audit.py --audit_file results/nf4/ga_v4_ep2_audit.jsonl
 ```
 
-The audit writes one row per probe to `results/<unlearn_run>_audit.jsonl`;
-`analyze_audit.py` turns that into the deltas, bootstrap intervals and figures
-reported in the paper.
+`--varieties` matters: it defaults to `en msa` only, so the full grid needs all
+four named. `--precision` matters more. The adapters are trained against a
+4-bit NF4 base, so the audit has to load the base the same way; evaluating them
+on an unquantised copy understates how much the anchor memorised and shrinks
+the English unlearning effect by more than half. `nf4` is the default and is
+what the paper reports. `fp32` reproduces our earlier, mismatched run.
+
+The audit writes one row per probe to
+`<output_dir>/<unlearn_run>_audit.jsonl`; `analyze_audit.py` turns that into
+the deltas, bootstrap intervals and figures reported in the paper.
+
+**5. Drift baseline.** TOFU's `real_authors` and `world_facts` splits are never
+fine-tuned on, so their base-to-anchor movement is drift rather than learning.
+The paper reports this as a control that does *not* work — the items are far
+shorter than the persona probes, so the movement is dominated by a register
+shift — and explains why the translated retain set is the better baseline
+outside English.
+
+```
+python scripts/drift_baseline.py --anchor_run anchor_v1 --unlearn_run ga_v4_ep2
+```
+
+## Results in this repo
+
+```
+results/nf4/     the numbers in the paper: 4-bit base, all four varieties
+results/fp32/    the same grid on an unquantised base, kept for comparison
+results/ga_v4_ep2_audit.jsonl   the original fp32 run, superseded
+```
 
 ## Adapters
 
@@ -124,6 +154,11 @@ also MIT, which permits redistribution of our translated derivative. The non-Eng
 machine translations and are treated as such throughout: the paper reports a
 robustness check restricting MSA to the 337 answers containing no Latin-script
 residue, which moves the result negligibly.
+
+## Citing this work
+
+The paper appears in the MRL 2026 proceedings; the ACL Anthology entry will be
+linked here once the proceedings are published.
 
 ## Authors
 

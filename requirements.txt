@@ -1,3 +1,4 @@
+# tested with: torch 2.12.1+cu130, transformers 5.16.1, peft 0.20.0, bitsandbytes 0.50.2
 torch>=2.0.0
 transformers>=4.40.0
 peft>=0.10.0

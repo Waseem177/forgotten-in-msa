@@ -21,6 +21,7 @@ Output:
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -127,13 +128,17 @@ def main() -> None:
         desc="tokenizing",
     )
 
+    # transformers 5.x dropped warmup_ratio; this is 3% of total optimizer steps.
+    steps_per_epoch = math.ceil(len(ds) / (args.batch_size * args.grad_accum))
+    warmup_steps = round(0.03 * steps_per_epoch * args.epochs)
+
     training_args = TrainingArguments(
         output_dir=str(out_dir),
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
         learning_rate=args.lr,
-        warmup_ratio=0.03,
+        warmup_steps=warmup_steps,
         lr_scheduler_type="cosine",
         bf16=True,
         gradient_checkpointing=True,
