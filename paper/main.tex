@@ -1,12 +1,14 @@
 % ============================================================
-%  Zenodo preprint. De-anonymised, DOI-citable.
-%  The ARR October cycle (submit 2026-10-12) remains the peer-review
-%  target; ARR has no anonymity period, so preprinting does not block it.
-%  Switch back to [review] to build the anonymised ARR submission.
+%  MRL 2026 camera-ready. Accepted 2026-09-21, submission #93.
+%  [final] is the camera-ready option: de-anonymised, no line numbers.
+%  [review] rebuilds the anonymised submission; note that Code and Data
+%  Availability names the repo URL, which [review] does not mask.
 % ============================================================
 
 \documentclass[11pt]{article}
-\usepackage[preprint]{acl}
+
+\usepackage[final]{acl}
+
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{times}
@@ -18,9 +20,6 @@
 \usepackage{xcolor}
 \usepackage{subcaption}
 \usepackage{inconsolata}
-
-% ---- TODO helper ----
-\newcommand{\TODO}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
 
 % ---- Paper metadata ----
 \title{A False Positive in Cross-Lingual\\
@@ -52,15 +51,15 @@ omitted.
 Auditing GradDiff unlearning of TOFU fictional-persona facts on
 \textsc{Qwen2.5-0.5B} across English, Modern Standard Arabic, Egyptian
 Arabic and Hindi, we find the expected signature of leakage: the unlearned
-model's forget-set loss rises by $+1.818$ nats in English but only $+0.550$
-in MSA, $30\%$ as much.
+model's forget-set loss rises by $+2.922$ nats in English but only $+0.774$
+in MSA, $26\%$ as much.
 Measuring the base model as well shows that signature to be an artefact.
 English-only fine-tuning left no measurable trace of the facts in the other
 three varieties — it raised forget-set loss there, and raised retain-set loss
 by an indistinguishable amount — so there is no evidence of cross-lingual
 memory for unlearning to have left behind.
 Once the never-learned and the uniform-degradation components are removed,
-the MSA effect is $+0.034$ nats, $3.5\%$ of English rather than $30\%$.
+the MSA effect is $+0.054$ nats, $2.5\%$ of English rather than $26\%$.
 We argue that a base-model transfer control and a retain-set control are
 jointly necessary for any cross-lingual unlearning claim, and report the
 audit design that yields them at no additional training cost.
@@ -109,7 +108,7 @@ loss movement does appear there is specific to the forgotten facts rather
 than a global side effect of unlearning. Neither assumption survives contact
 with a base-model measurement in our setup.
 
-Our audit reproduces the textbook leakage signature — MSA moves $30\%$ as
+Our audit reproduces the textbook leakage signature — MSA moves $26\%$ as
 much as English — and then dissolves it. Fine-tuning on English TOFU did not
 teach the model the facts in MSA, Egyptian Arabic or Hindi; it made the model
 uniformly worse in all three, on forget and retain facts alike. The residual
@@ -121,10 +120,10 @@ cannot tell that situation apart from genuine residual recall.
 \paragraph{Contributions.}
 \begin{enumerate}
   \item We show that a cross-lingual unlearning audit without a base-model
-        transfer control can report substantial leakage where none is
-        possible, and quantify the gap in our own setup: an apparent MSA
-        effect of $30\%$ of English falls to $3.5\%$ once the never-learned
-        and uniform-degradation components are removed.
+        transfer control can report substantial leakage where no
+        acquisition has been shown, and quantify the gap in our own setup: an
+        apparent MSA effect of $26\%$ of English falls to $2.5\%$ once the
+        never-learned and uniform-degradation components are removed.
   \item We give the control design that separates them — base
         \emph{and} anchor measurements crossed with forget \emph{and} retain
         probes, in every language — and show it costs no extra training,
@@ -144,7 +143,8 @@ cannot tell that situation apart from genuine residual recall.
 Gradient Ascent (GA) unlearning maximises loss on forget-set examples,
 driving the model away from those predictions
 \citep{jang2023knowledge}.
-GradDiff \citep{yao2023llmunlearning} augments GA with a retain-set
+GradDiff \citep{liu2022continual}, applied to LLM unlearning by
+\citet{yao2023llmunlearning}, augments GA with a retain-set
 cross-entropy term to prevent catastrophic forgetting of general capabilities.
 Negative Preference Optimisation (NPO) \citep{zhang2024npo} reformulates
 the forget objective as preference learning.
@@ -155,8 +155,10 @@ All three methods are evaluated exclusively in the unlearning language.
 controlled benchmark of 4,000 question-answer pairs about fictional authors.
 Because the facts are synthetic, ground-truth forgetting can be defined
 precisely.
-The standard evaluation uses forget10 (the 10\% held-out forget split)
-and measures forget quality via loss and ROUGE score.
+The standard evaluation uses forget10 (the 10\% held-out forget split) and
+reports loss and ROUGE alongside \emph{forget quality}, a
+Kolmogorov--Smirnov test comparing truth-ratio distributions against a
+retrained model.
 
 \paragraph{Cross-lingual unlearning.}
 \citet{choi2024crosslingual} demonstrate that unlearning in one language does
@@ -168,10 +170,17 @@ into another language.
 Most related to our work, \citet{farashah2026multilingual} find that
 syntactic distance between languages is the strongest predictor of leakage
 magnitude — implying Arabic dialects, which are syntactically closer to MSA
-than to English, may leak differently.
+than to English, may leak differently. Their design differs from ours in a
+way that matters for the comparison: they fine-tune on every language they
+evaluate, so acquisition in each is established by construction, and they
+report a retain-only baseline alongside the unlearned model. The gap we
+identify does not apply to that setup. It applies to the common case, ours
+included, where fine-tuning happens in one language and the audit reports
+several.
 
-What these studies share is a comparison between the fine-tuned and the
-unlearned model. The pre-fine-tuning model is used, if at all, to establish
+What these studies share is that the headline comparison is between the
+fine-tuned and the unlearned model. The pre-fine-tuning model is used, if at
+all, to establish
 that the benchmark facts are unknown at the outset; it is not used per
 language to establish that fine-tuning made them known in the language the
 audit probes. That step is what our results show to be load-bearing. The
@@ -193,9 +202,9 @@ the full experiment reproducible without cloud compute. It is a small model
 with modest Arabic capacity, which as it turns out matters for what we are
 able to conclude — see Section~\ref{sec:discussion}.
 
-We fine-tune with QLoRA \citep{hu2022lora}: the base weights are frozen in
-4-bit NF4 quantization; only LoRA adapter matrices ($r=16$, $\alpha=32$) are
-trained.
+We fine-tune with QLoRA \citep{dettmers2023qlora}: the base weights are
+frozen in 4-bit NF4 quantization; only LoRA \citep{hu2022lora} adapter
+matrices ($r=16$, $\alpha=32$) are trained.
 
 \subsection{Benchmark and Translation}
 We use the TOFU forget10 split (400 forget facts, 3,600 retain facts).
@@ -258,7 +267,8 @@ three varieties, which is the point of the transfer control.
 
 \subsection{Unlearning: GradDiff}
 Starting from the anchor LoRA adapter, we apply GradDiff
-\citep{yao2023llmunlearning}:
+\citep{liu2022continual}, in the form \citet{maini2024tofu} use as a TOFU
+baseline:
 \[
   \mathcal{L} = -\mathcal{L}_\text{forget} + \lambda \, \mathcal{L}_\text{retain},
   \quad \lambda = 1.0
@@ -312,8 +322,16 @@ forcing, for three models — the untuned \emph{base} model, the \emph{anchor},
 and the \emph{unlearned} checkpoint — crossed with four varieties
 $v \in \{\text{EN}, \text{MSA}, \text{EGY}, \text{HI}\}$ and both the forget
 and retain splits. This is $3 \times 4 \times 2 \times 400 = 9{,}600$ probes.
-All three models share one frozen 4-bit base; only the LoRA adapter is
-swapped, so the full grid costs inference passes rather than training.
+All three models share one frozen base, loaded in 4-bit NF4 exactly as in
+training; only the LoRA adapter is swapped, so the full grid costs inference
+passes rather than training.\footnote{The submitted version of this paper
+evaluated these adapters on an unquantised copy of the base model. Because
+the adapters were trained against the quantised base, that mismatch
+understated both the anchor's memorisation (English forget-set loss $0.877$
+rather than $0.272$) and the size of the English unlearning effect. Every
+number reported here comes from the matched 4-bit evaluation. The conclusion
+is unchanged and the residual Arabic effect is smaller than in the submitted
+version.}
 
 The quantity usually reported is the within-variety unlearning delta
 \[
@@ -335,17 +353,26 @@ carries no information about forgetting: nothing has been shown to be there
 to remove. Reporting leakage in that regime is a false positive.
 
 \paragraph{Retain control.}
-Both deltas are also computed on retain facts, which are never targeted by
-the ascent term. Any movement they show is by construction not
-fact-specific — it is the model drifting as a whole. We therefore report the
-net
+Both deltas are also computed on retain facts, and we report the net
 \[
   \widetilde{\Delta}_v = \Delta_v^{[\text{forget}]} - \Delta_v^{[\text{retain}]}
 \]
-for each step, and treat only $\widetilde{\Delta}_v$ as evidence about the
-targeted facts. Confidence intervals are $95\%$, computed over the 400
-facts; deltas are paired by \texttt{fact\_id} within a split, and the net
-combines the two splits' standard errors.
+for each step. A net is interpretable only where the two splits received
+different treatment. That holds in Step 2: the forget set is under the ascent
+term and the retain set under the descent term, so retain movement there is
+drift rather than targeted forgetting, and subtracting it isolates
+fact-specific movement. It does not hold in Step 1, where the anchor is
+fine-tuned on both splits. Retain movement then carries the same learning the
+forget set received, and the net subtracts it away — which is why the English
+Step 1 net is indistinguishable from zero in the one variety where
+acquisition is certain. Acquisition is therefore read off
+$\Delta_v^{\text{tr}}$ on forget facts, and the Step 1 net is reported as a
+measure of how uniformly fine-tuning moved a variety rather than as a test of
+whether the facts were learned. Confidence intervals are $95\%$ and computed over the 400 facts, with
+deltas paired by \texttt{fact\_id} within a split. Intervals on individual
+deltas, including the error bars in Figure~\ref{fig:loss_by_state}, are
+percentile bootstrap; intervals on a net combine the two splits' standard
+errors.
 
 The retain control is also what absorbs the per-language loss offset that
 tokenisation alone induces: Arabic and Hindi are segmented less efficiently
@@ -369,17 +396,17 @@ Section~\ref{sec:metric}.
 \toprule
 Variety & Split & Base & Anchor & Unlearned \\
 \midrule
-EN  & forget & 2.619 & \textbf{0.877} & 2.695 \\
-    & retain & 2.679 & 0.910 & 1.749 \\
+EN  & forget & 2.717 & \textbf{0.272} & 3.194 \\
+    & retain & 2.804 & 0.304 & 1.071 \\
 \addlinespace
-MSA & forget & 2.655 & \textbf{3.381} & 3.931 \\
-    & retain & 2.741 & 3.480 & 3.995 \\
+MSA & forget & 2.888 & \textbf{3.758} & 4.532 \\
+    & retain & 2.970 & 3.856 & 4.576 \\
 \addlinespace
-EGY & forget & 2.857 & \textbf{3.644} & 4.218 \\
-    & retain & 2.918 & 3.695 & 4.209 \\
+EGY & forget & 3.082 & \textbf{4.024} & 4.801 \\
+    & retain & 3.141 & 4.086 & 4.818 \\
 \addlinespace
-HI  & forget & 1.236 & \textbf{1.561} & 1.756 \\
-    & retain & 1.307 & 1.666 & 1.869 \\
+HI  & forget & 1.435 & \textbf{1.842} & 2.109 \\
+    & retain & 1.513 & 1.946 & 2.224 \\
 \bottomrule
 \end{tabular}
 \caption{Mean per-token loss (nats) over 400 facts per cell. Bold marks the
@@ -397,84 +424,161 @@ predict the facts than before it started.}
 Variety & Forget $\Delta$ & Retain $\Delta$ & Net $\widetilde{\Delta}$ \\
 \midrule
 \multicolumn{4}{l}{\emph{Step 1: base $\rightarrow$ anchor (transfer)}} \\
-EN  & $-1.742$ & $-1.769$ & $+0.027 \pm 0.062$ \\
-MSA & $+0.726$ & $+0.738$ & $-0.013 \pm 0.052$ \\
-EGY & $+0.787$ & $+0.777$ & $+0.010 \pm 0.054$ \\
-HI  & $+0.325$ & $+0.359$ & $-0.034 \pm 0.019$ \\
+EN  & $-2.445$ & $-2.500$ & $+0.055 \pm 0.075$ \\
+MSA & $+0.870$ & $+0.886$ & $-0.016 \pm 0.058$ \\
+EGY & $+0.941$ & $+0.945$ & $-0.003 \pm 0.060$ \\
+HI  & $+0.408$ & $+0.433$ & $-0.025 \pm 0.023$ \\
 \addlinespace
 \multicolumn{4}{l}{\emph{Step 2: anchor $\rightarrow$ unlearned}} \\
-EN  & $+1.818$ & $+0.839$ & $+0.979 \pm 0.102$ \\
-MSA & $+0.550$ & $+0.516$ & $+0.034 \pm 0.029$ \\
-EGY & $+0.575$ & $+0.514$ & $+0.061 \pm 0.028$ \\
-HI  & $+0.195$ & $+0.202$ & $-0.007 \pm 0.012$ \\
+EN  & $+2.922$ & $+0.766$ & $+2.155 \pm 0.152$ \\
+MSA & $+0.774$ & $+0.719$ & $+0.054 \pm 0.038$ \\
+EGY & $+0.778$ & $+0.732$ & $+0.046 \pm 0.039$ \\
+HI  & $+0.267$ & $+0.277$ & $-0.010 \pm 0.015$ \\
 \bottomrule
 \end{tabular}
 \caption{Loss deltas in nats, with $95\%$ confidence intervals on the net.
-Step 1 is the transfer control: only English shows fact-specific
-acquisition, and even there the forget and retain sets move together because
-the anchor is trained on both. In every non-English variety both splits move
-by the same amount in the same direction, so the net is indistinguishable
-from zero.}
+Step 1 is the transfer control, and acquisition is read off its forget
+column, which is negative in English alone. The Step 1 net is not an
+acquisition test: the anchor trains on both splits, so in English their
+shared movement is learning, and a net near zero records that rather than an
+absence of learning. In the non-English varieties both splits rise together,
+and there the shared movement is degradation of the variety.}
 \label{tab:deltas}
 \end{table}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_loss_by_state.png}
+\caption{Forget-set loss by model state. The anchor falls far below the base
+model in English — the facts were learned — and sits \emph{above} it in MSA,
+Egyptian Arabic and Hindi, where English-only fine-tuning left the model
+worse at those facts than before training. Unlearning then raises loss in
+every variety, but only in English does it undo something the anchor had.
+Error bars are $95\%$ bootstrap intervals over 400 facts.}
+\label{fig:loss_by_state}
+\end{figure}
+
 \paragraph{The leakage signature is present.}
 Read the way a standard audit reads it, our result is a textbook case of
-cross-lingual leakage. Unlearning raises English forget-set loss by $+1.818$
-nats, from $0.877$ to $2.695$ — the anchor's memorisation is undone, and the
-model ends up roughly where the untuned base model was. In MSA the same
-checkpoint moves only $+0.550$ nats, $30\%$ as far. Egyptian Arabic
-($+0.575$) and Hindi ($+0.195$) look similar or weaker. A paper reporting
+cross-lingual leakage. Unlearning raises English forget-set loss by $+2.922$
+nats, from $0.272$ to $3.194$ — the anchor's memorisation is undone, and the
+model ends up above where the untuned base model was. In MSA the same
+checkpoint moves only $+0.774$ nats, $26\%$ as far. Egyptian Arabic
+($+0.778$) and Hindi ($+0.267$) look similar or weaker. A paper reporting
 only these numbers would conclude that GradDiff erases in English while
 leaving the facts recoverable in Arabic, and the effect sizes are large
 enough that no amount of statistical care within that comparison would
 overturn it.
 
 \paragraph{The transfer control removes it.}
-Step 1 of Table~\ref{tab:deltas} shows why that conclusion is not available.
-Fine-tuning cut English forget-set loss by $-1.742$ nats, but in MSA it
-\emph{raised} forget-set loss by $+0.726$, in Egyptian by $+0.787$ and in
-Hindi by $+0.325$. The anchor is worse at predicting the Arabic and Hindi
-forget facts than the model it was trained from. Whatever the $+0.550$-nat
+Step 1 of Table~\ref{tab:deltas}, plotted in Figure~\ref{fig:loss_by_state},
+shows why that conclusion is not available.
+Fine-tuning cut English forget-set loss by $-2.445$ nats, but in MSA it
+\emph{raised} forget-set loss by $+0.870$, in Egyptian by $+0.941$ and in
+Hindi by $+0.408$. The anchor is worse at predicting the Arabic and Hindi
+forget facts than the model it was trained from. Whatever the $+0.774$-nat
 MSA movement in Step 2 represents, it cannot be the removal of knowledge the
 anchor did not have.
 
 \paragraph{What movement remains is not fact-specific.}
 The retain control locates the residue. In Step 1, MSA retain loss rose
-$+0.738$ against forget's $+0.726$; Egyptian $+0.777$ against $+0.787$;
-Hindi $+0.359$ against $+0.325$. English-only fine-tuning degrades these
+$+0.886$ against forget's $+0.870$; Egyptian $+0.945$ against $+0.941$;
+Hindi $+0.433$ against $+0.408$. English-only fine-tuning degrades these
 languages globally — catastrophic forgetting of the target language, not
 acquisition of the target facts — and the forget and retain sets are carried
-along together. The nets are $-0.013 \pm 0.052$, $+0.010 \pm 0.054$ and
-$-0.034 \pm 0.019$: no fact-specific transfer at any measurable level.
-Step 2 behaves the same way. The MSA net is $+0.034 \pm 0.029$ and the
-Egyptian net $+0.061 \pm 0.028$; both exclude zero at $n=400$, but they are
-$3.5\%$ and $6.2\%$ of the English net of $+0.979 \pm 0.102$, and they sit on
-facts for which the transfer control shows no acquisition. Hindi is
-$-0.007 \pm 0.012$, indistinguishable from zero. The apparent MSA leakage
-shrinks from $30\%$ of the English effect to $3.5\%$ once the never-learned
-and drift components are taken out.
+along together. The nets are $-0.016 \pm 0.058$, $-0.003 \pm 0.060$ and
+$-0.025 \pm 0.023$: no fact-specific transfer at any measurable level.
+
+English is the instructive contrast, and it is why the Step 1 net must not be
+read as an acquisition test. There too the two splits move together
+($-2.445$ against $-2.500$, net $+0.055 \pm 0.075$), but for the opposite
+reason: the anchor was trained on both, so what they share is learning rather
+than drift. A net is informative only where the two splits were treated
+differently. In Step 2 they were — forget under the ascent term, retain under
+the descent term — so the net isolates fact-specific movement. In Step 1 they
+were not, and acquisition has to be read off the raw forget-set change, which
+is negative in English alone.
+
+Read that way, Step 2 gives an MSA net of $+0.054 \pm 0.038$ and an Egyptian
+net of $+0.046 \pm 0.039$; both exclude zero at $n=400$, but they are $2.5\%$
+and $2.1\%$ of the English net of $+2.155 \pm 0.152$, and they sit on facts
+for which the transfer control shows no acquisition. Hindi is
+$-0.010 \pm 0.015$, indistinguishable from zero. The apparent MSA leakage
+shrinks from $26\%$ of the English effect to $2.5\%$ once the never-learned
+and drift components are taken out. Both figures are ratios of teacher-forced
+loss movements, and loss movement is not a direct measure of how much of a
+fact remains recoverable; what the comparison establishes is that the
+movement attributable to the targeted facts in Arabic is a small fraction of
+the English one, not that a specific fraction of knowledge survives.
 
 \paragraph{No transfer at the level of individual facts either.}
 The aggregate could in principle hide transfer on a subset of facts. It does
 not. Correlating each fact's English unlearning delta with its delta in
-another variety gives $r = +0.077$ for MSA, $+0.036$ for Egyptian and
-$-0.117$ for Hindi. Facts that were forgotten hardest in English were not
+another variety gives $r = +0.029$ for MSA, $+0.005$ for Egyptian and
+$-0.038$ for Hindi. Facts that were forgotten hardest in English were not
 forgotten harder anywhere else.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+Variety & Never-trained $\Delta$ & Forget $-$ never-trained \\
+\midrule
+EN  & $+1.934$ & $-4.378 \pm 0.400$ \\
+MSA & $+2.012$ & $-1.143 \pm 0.228$ \\
+EGY & $+2.151$ & $-1.210 \pm 0.220$ \\
+HI  & $+0.836$ & $-0.429 \pm 0.160$ \\
+\bottomrule
+\end{tabular}
+\caption{Base $\rightarrow$ anchor movement on the 217 TOFU
+\texttt{real\_authors} and \texttt{world\_facts} items, which no stage of our
+pipeline trains on, and what subtracting it from the forget-set change would
+imply. We report this baseline but do not apply it: see text.}
+\label{tab:drift}
+\end{table}
+
+\paragraph{A never-trained drift baseline.}
+The retain set is fine-tuned on, so in English it cannot measure drift. A
+baseline the anchor never saw would separate the two, and TOFU supplies one:
+the \texttt{real\_authors} and \texttt{world\_facts} splits, 217 items in
+total, which no stage of our pipeline trains on. We translated them with the
+same NLLB pipeline and probed them with the same adapters
+(Table~\ref{tab:drift}). Fine-tuning moves them by $+1.934$ to $+2.151$ nats
+in English, MSA and Egyptian Arabic, more than twice what it moves the
+persona probes in any non-English variety, and subtracting that from the
+forget-set change would imply that English-only fine-tuning taught the model
+the facts in all three non-English varieties, Hindi included. We do not read it that way. The two sets differ in form:
+answers in the never-trained splits average 3--11 tokens against 33--166 for
+the persona answers, and fine-tuning on four thousand long biographical
+sentences moves the model away from short factual answers in every language
+at once. The baseline measures that shift, not the drift our probes undergo.
+
+What the exercise does establish is when a retain control can be trusted. Our
+anchor is fine-tuned in English alone, so outside English neither split was
+ever trained on: the translated retain set is itself a never-trained baseline,
+and unlike \texttt{world\_facts} it matches the forget probes in length and
+register. That is why MSA forget ($+0.870$) and retain ($+0.886$) coincide so
+closely. The contamination is confined to English, where both splits were
+trained and where acquisition is therefore read off the raw change of
+$-2.445$. The baseline this experiment reaches for would be persona facts
+held out of fine-tuning altogether: never trained on, and matched to the
+probes in length and register. That costs an anchor run, which is why we
+report the mismatched baseline here and return to the matched one in
+Section~\ref{sec:discussion}.
 
 \paragraph{Robustness to the translation artefact.}
 Restricting MSA to the 337 forget facts whose answers contain no Latin
 script, which removes the untransliterated persona names and the
 \emph{LGBTQ} acronym discussed in Section~\ref{sec:setup}, leaves the picture
-unchanged: transfer $+0.741 \pm 0.039$ against a retain control of $+0.738$,
-and an unlearning delta of $+0.546 \pm 0.023$ against $+0.550$ on the full
-set. The artefact we were most concerned about is not what produces the
+unchanged: transfer $+0.885$ against a retain control of $+0.886$, and an
+unlearning delta of $+0.764$ against $+0.774$ on the full set. The artefact we were most concerned about is not what produces the
 null.
 
 \paragraph{The null is not an underpowered one.}
 At $n=400$ the confidence intervals on the non-English nets are narrow
-enough to matter: $\pm 0.052$, $\pm 0.054$ and $\pm 0.019$ nats in Step 1,
-against a Step 2 English net of $+0.979$. A transfer effect anywhere near
+enough to matter: $\pm 0.058$, $\pm 0.060$ and $\pm 0.023$ nats in Step 1,
+against a Step 2 English net of $+2.155$. A transfer effect anywhere near
 the magnitude of the English one would have been detected many times over.
 What the data cannot exclude is an effect one to two orders of magnitude
 smaller, which is the bound we claim rather than zero.
@@ -506,9 +610,11 @@ word order and morphological type. Consistent with a distance account, Hindi
 moves least. The second is interference: fine-tuning hard on one language
 degraded the others, and that degradation could be masking a small genuine
 transfer effect. The retain control cannot distinguish these, because it
-subtracts exactly the quantity that would be needed to see it.
+subtracts exactly the quantity that would be needed to see it, and the
+never-trained baseline of Table~\ref{tab:drift} does not settle it either: it
+moves too much, for reasons of form rather than language.
 
-What we can say is that the confound in their setup is not resolved by
+What we can say is that the confound in our setup is not resolved by
 appealing to resourcing. MSA is the best-represented Arabic variety in both
 the backbone's pretraining and NLLB's translation distribution, and it shows
 no more transfer than Egyptian. Nor is the null an artefact of our
@@ -530,9 +636,10 @@ requirements follow.
 overall.
   \item Probe a retain set alongside every forget set, so that fact-specific
 movement can be separated from drift.
-  \item Report $\Delta_v^{\text{tr}}$ as a precondition of the leakage claim:
-where it does not show acquisition in variety $v$, no statement about
-forgetting in $v$ is licensed.
+  \item Report $\Delta_v^{\text{tr}}$ as a precondition of the leakage claim,
+measured on the forget set itself rather than net of the retain set, since
+fine-tuning acts on both: where it does not show acquisition in variety $v$,
+no statement about forgetting in $v$ is licensed.
 \end{enumerate}
 
 \noindent The cost is inference only, on adapters the pipeline already
@@ -543,8 +650,17 @@ The experiment our original question needs is an anchor that demonstrably
 knows the facts in every probed variety — multilingual fine-tuning, with
 unlearning still applied in English alone. That makes $\Delta_v^{\text{tr}}$
 negative by construction and the leakage question well posed. It also costs
-a second anchor: ours took 23.3 GPU-hours for the English one. We regard
-this, rather than a larger model, as the first thing to change.
+a second anchor: ours took 23.3 GPU-hours for the English one. Holding a
+slice of the persona facts out of that run would, at no extra cost, also
+supply the never-trained and format-matched drift baseline that
+Table~\ref{tab:drift} approximates poorly. We regard this pair, rather than a
+larger model, as the first thing to change.
+
+A second axis worth varying is typological distance. Our three targets are
+all remote from English, and a closer language — German, say — would test
+whether the size of the transfer null tracks distance in the way
+\citet{farashah2026multilingual} predict, or whether monolingual fine-tuning
+at this scale simply fails to cross any language boundary.
 
 % ============================================================
 \section{Conclusion}
@@ -552,13 +668,13 @@ this, rather than a larger model, as the first thing to change.
 
 We set out to measure whether GradDiff unlearning of English TOFU facts
 leaves those facts recoverable in Arabic, and obtained the expected answer:
-an English forget-set loss increase of $+1.818$ nats against $+0.550$ in MSA,
-$30\%$ as large. Adding a base-model measurement per variety showed the
+an English forget-set loss increase of $+2.922$ nats against $+0.774$ in MSA,
+$26\%$ as large. Adding a base-model measurement per variety showed the
 comparison to be unsound. English-only fine-tuning raised forget-set loss in
 MSA, Egyptian Arabic and Hindi rather than lowering it, and raised retain-set
 loss by a statistically indistinguishable amount, leaving no measurable
 fact-specific knowledge for unlearning to act on. Net of both controls the
-MSA effect is $+0.034$ nats, $3.5\%$ of English, on facts the model cannot be
+MSA effect is $+0.054$ nats, $2.5\%$ of English, on facts the model cannot be
 shown to have known in Arabic.
 
 The methodological point generalises beyond our backbone. A cross-lingual
@@ -596,10 +712,19 @@ not depend on this: the weaker the transfer, the more a leakage audit needs
 the control that detects it. But readers should not take the null itself as a
 general fact about LLMs.
 
+The sharper form of that objection is that the variable which matters is not
+parameter count but how much of each language the backbone saw in
+pretraining, which for most open-weight models is undocumented. Recent fully
+open releases that publish their training corpora alongside their weights
+would allow the transfer control to be read against a known share of Arabic
+rather than an assumed one, and we regard that as the more informative
+replication.
+
 Relatedly, our transfer control is a null result, and a null cannot be
 distinguished from insufficient sensitivity by the measurement that produced
 it. We report confidence intervals narrow relative to the English effect
-(nets within $\pm 0.06$ nats against $+0.979$), which bounds how large a
+(non-English nets within $\pm 0.06$ nats against an English unlearning
+effect of $+2.155$), which bounds how large a
 transfer effect could be hiding, but a fact-specific signal well below that
 floor would be invisible to us.
 
@@ -640,6 +765,14 @@ leakage question is well posed in a way it is not here. That is a limitation
 on our null, not on our argument for the control — a real-data audit that
 omits the transfer control still cannot show which of its languages held the
 fact.
+
+% ============================================================
+\section*{Acknowledgments}
+
+We thank the MRL 2026 organisers for their help and flexibility during the
+submission process. We also thank the anonymous reviewers: the never-trained
+drift baseline in Table~\ref{tab:drift} was run at their suggestion, and the
+discussion of when a retain control can be trusted is sharper for it.
 
 % ============================================================
 \bibliography{refs}

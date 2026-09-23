@@ -64,6 +64,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--retain_sample", type=int, default=400,
                    help="Subsample retain set to this many facts")
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--precision", choices=["nf4", "fp32"], default="nf4",
+                   help="Base-model precision. nf4 matches how the adapters "
+                        "were trained; fp32 reproduces the original audit run.")
     return p.parse_args()
 
 
@@ -87,8 +90,14 @@ def select_retain_ids(splits: dict, n: int, seed: int) -> set[int]:
 def main() -> None:
     args = parse_args()
 
+    use_nf4 = args.precision == "nf4"
+    if use_nf4 and not torch.cuda.is_available():
+        raise SystemExit(
+            "--precision nf4 needs CUDA; bitsandbytes 4-bit does not run on MPS or CPU."
+        )
+
     bnb_config = None
-    if torch.cuda.is_available():
+    if use_nf4:
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
@@ -103,17 +112,29 @@ def main() -> None:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    print(f"Loading base model {args.model_name}...")
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
-    print(f"Using device: {device}")
-    base = AutoModelForCausalLM.from_pretrained(
-        args.model_name,
-        quantization_config=bnb_config,
-        device_map=None,
-        torch_dtype=torch.float32,
-        low_cpu_mem_usage=False,
-    )
-    base = base.to(device)
+    print(f"Loading base model {args.model_name} [{args.precision}]...")
+    if use_nf4:
+        # bitsandbytes places the quantised weights itself and .to() errors on them
+        base = AutoModelForCausalLM.from_pretrained(
+            args.model_name,
+            quantization_config=bnb_config,
+            device_map={"": 0},
+        )
+    else:
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif torch.backends.mps.is_available():
+            device = "mps"
+        else:
+            device = "cpu"
+        print(f"Using device: {device}")
+        base = AutoModelForCausalLM.from_pretrained(
+            args.model_name,
+            device_map=None,
+            torch_dtype=torch.float32,
+            low_cpu_mem_usage=False,
+        )
+        base = base.to(device)
 
     # Load both adapters at once; swap between them with set_adapter()
     print("Loading anchor adapters...")
